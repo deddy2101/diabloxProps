@@ -73,7 +73,7 @@ void EthernetConnection::init()
     // Check for Ethernet hardware present
     if (Ethernet.hardwareStatus() == EthernetNoHardware)
     {
-      Serial.printf("\033[1;31m[E] Ethernet shield was not found.  Sorry, can't run without hardware. :(\033[0m\n");
+      printf("\033[1;31m[E] Ethernet shield was not found.  Sorry, can't run without hardware. :(\033[0m\n");
       while (true)
       {
         delay(1); // do nothing, no point running without Ethernet hardware
@@ -81,16 +81,16 @@ void EthernetConnection::init()
     }
     if (Ethernet.linkStatus() == LinkOFF)
     {
-      Serial.printf("\033[1;31m[E] Ethernet cable is not connected.\033[0m\n");
+      printf("\033[1;31m[E] Ethernet cable is not connected.\033[0m\n");
     }
     Ethernet.begin(mac, ip, dns, gw, mask);
-    Serial.printf("\033[1;32mSTATIC OK!\033[0m\n");
+    printf("\033[1;32mSTATIC OK!\033[0m\n");
     digitalWrite(LED_ETH_OK, LOW);
   }
   Ethernet.begin(mac, ip, dns, gw, mask);
-  Serial.printf("\033[1;33mLocal IP : %s\033[0m\n", Ethernet.localIP().toString().c_str());
-  Serial.printf("\033[1;33mSubnet Mask : %s\033[0m\n", Ethernet.subnetMask().toString().c_str());
-  Serial.printf("\033[1;33mGateway IP : %s\033[0m\n", Ethernet.gatewayIP().toString().c_str());
-  Serial.printf("\033[1;33mDNS Server : %s\033[0m\n", Ethernet.dnsServerIP().toString().c_str());
+  printf("\033[1;33mLocal IP : %s\033[0m\n", Ethernet.localIP().toString().c_str());
+  printf("\033[1;33mSubnet Mask : %s\033[0m\n", Ethernet.subnetMask().toString().c_str());
+  printf("\033[1;33mGateway IP : %s\033[0m\n", Ethernet.gatewayIP().toString().c_str());
+  printf("\033[1;33mDNS Server : %s\033[0m\n", Ethernet.dnsServerIP().toString().c_str());
   delay(1000);
 }

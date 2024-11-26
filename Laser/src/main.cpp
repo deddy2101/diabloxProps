@@ -8,18 +8,21 @@
 #define LASER_PIN_1 39
 #define LASER_PIN_2 40
 #define LASER_PIN_3 41
+#define LASER_PIN_4 38
 
 #define ETH_RESET_PIN 46
 
 #define INPUT_LASER_1 4
 #define INPUT_LASER_2 5
 #define INPUT_LASER_3 6
+#define INPUT_LASER_4 7
 #define NUM_LEDS 1
 #define DATA_PIN 48
 CRGB leds[NUM_LEDS];
 volatile bool toggle1 = false;
 volatile bool toggle2 = false;
 volatile bool toggle3 = false;
+volatile bool toggle4 = false;
 bool relayState = false;
 EthernetConnection eth;
 
@@ -30,11 +33,13 @@ void setup() {
   pinMode(LASER_PIN_1, OUTPUT);
   pinMode(LASER_PIN_2, OUTPUT);
   pinMode(LASER_PIN_3, OUTPUT);
+  pinMode(LASER_PIN_4, OUTPUT);
   pinMode(RELAY_PIN, OUTPUT);
 
   pinMode(INPUT_LASER_1, INPUT);
   pinMode(INPUT_LASER_2, INPUT);
   pinMode(INPUT_LASER_3, INPUT);
+  pinMode(INPUT_LASER_4, INPUT);
 
 }
 void loop() {
@@ -57,19 +62,15 @@ delay(4);
   toggle3 = digitalRead(INPUT_LASER_3);
   digitalWrite(LASER_PIN_3, LOW);
   delay(4);
-  if(toggle1 == LOW){
-    leds[0] = CRGB::Red;
-    FastLED.show();
-  }
-  if(toggle2 == LOW){
-    leds[0] = CRGB::Green;
-    FastLED.show();
-  }
-  if(toggle3 == LOW){
-    leds[0] = CRGB::Blue;
-    FastLED.show();
-  }
-  if (toggle1 == LOW && toggle2 == LOW && toggle3 == LOW){
+  //read the input 4
+  digitalWrite(LASER_PIN_4, HIGH);
+  delay(4);
+  toggle4 = digitalRead(INPUT_LASER_4);
+  digitalWrite(LASER_PIN_4, LOW);
+  delay(4);
+
+
+  if ( toggle4 == LOW) {
     leds[0] = CRGB::Green;
     FastLED.show();
     relayState = true;
