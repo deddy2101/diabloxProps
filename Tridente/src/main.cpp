@@ -19,8 +19,8 @@
 CardReader cardReader(CS_1, RST_1);
 CardReader cardReader2(CS_2, RST_2);
 
-byte serial_1[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
-byte serial_2[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
+byte serial_1[5] = {0x43, 0x0D, 0x8D, 0x18, 0xDB};
+byte serial_2[5] = {0xD3, 0x85, 0x9C, 0xED, 0x27};
 
 
 #define NUM_LEDS 1
@@ -30,23 +30,44 @@ bool relayState = false;
 EthernetConnection eth;
 SPIClass spi;
 
+void setLedColor(CRGB color)
+{
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = color;
+  }
+  FastLED.show();
+}
 
 void setup() {
-  spi.begin(18, 16, 17, 40);
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
+  //set led 1 to red
+  setLedColor(CRGB::Red);
+
+  spi.begin(18, 16, 17, 40);
+  
   pinMode(RELAY_PIN, OUTPUT);
   cardReader.begin(&spi);  
   cardReader2.begin(&spi);
 
   eth.init(&relayState);
-  
+  setLedColor(CRGB::Green);
 
 }
 bool isRelayOn = false;
 void loop() {
   if (cardReader.readCardAndHoldPresence(serial_1) && cardReader2.readCardAndHoldPresence(serial_2) && !isRelayOn) {
-    isRelayOn=true;
-    eth.apiCall("http://");
+    relayState=true;
+    
+    printf("\033[1;32m[I] The relay is on\n\033[0m");
+    //eth.apiCall("http://");
   };
-  digitalWrite(RELAY_PIN, isRelayOn);
+
+  if (relayState) {
+    setLedColor(CRGB::Blue);
+  } else {
+    setLedColor(CRGB::Green);
+  }
+  digitalWrite(RELAY_PIN, relayState);
+  eth.loop();
 }

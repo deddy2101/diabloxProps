@@ -9,31 +9,25 @@ EthernetConnection::EthernetConnection() :  server(80)
   mac[4] = 0xFE;
   mac[5] = 0xED;
 
-  ip[0] = 10;
-  ip[1] = 0;
-  ip[2] = 152;
-  ip[3] = 7;
+  ip[0] = 192;
+  ip[1] = 168;
+  ip[2] = 1;
+  ip[3] = 133;
 
   dns[0] = 8;
   dns[1] = 8;
   dns[2] = 8;
   dns[3] = 8;
 
-  gw[0] = 10;
-  gw[1] = 0;
-  gw[2] = 152;
-  gw[3] = 1;
+  gw[0] = 192;
+  gw[1] = 168;
+  gw[2] = 1;
+  gw[3] = 254;
 
   mask[0] = 255;
   mask[1] = 255;
   mask[2] = 255;
   mask[3] = 0;
-
-  serverIP[0] = 10;
-  serverIP[1] = 0;
-  serverIP[2] = 100;
-  serverIP[3] = 26;
-  // 151.16.177.62
 }
 
 void EthernetConnection::init(bool *relayState)
@@ -138,24 +132,56 @@ bool EthernetConnection::apiCall(String url) {
 
 
 void EthernetConnection::initServer() {
-    // Endpoint per la root "/"
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(200, "text/plain", "ciao");
-    });
+   
+}
 
-    // Endpoint per "/reset"
-    server.on("/reset", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        request->send(200, "text/plain", "ok");
-        *relayState = false;
-        // Aggiungi la logica di reset
-        Serial.println("Richiesta di reset ricevuta");
-        // Puoi aggiungere un reset hardware o altre azioni qui
-        digitalWrite(ETH_RST, LOW);
-        delay(200);
-        digitalWrite(ETH_RST, HIGH);
-    });
+String readString = String(30);
+void EthernetConnection::loop() {
+  EthernetClient client = server.available();
+  if (client) {
+    boolean currentLineIsBlank = true;
+    readString = "";
+    boolean endofFirstLine = false;
+    while (client.connected()) {
+      if (client.available()) {
+        char c = client.read();
 
-    // Avvia il server
-    server.begin();
-    Serial.println("Server HTTP avviato");
+        //first time encounter a line return say true
+        if (c == '\n' && endofFirstLine == false) endofFirstLine = true;
+
+        //MySerial.print(c); //print what server receives to serial monitor
+
+        //read char by char HTTP request, limit to checking the first 30 and stop after first line
+        if ((readString.length() < 30) && (endofFirstLine == false)) {
+          //store characters to string
+          readString += c;
+        }
+
+        // if you've gotten to the end of the line (received a newline
+        // character) and the line is blank, the http request has ended
+        // so you can send a reply
+        if (c == '\n' && currentLineIsBlank) {
+
+          //if readString starts with /s serve sensor data
+          if (readString.indexOf("/r") > 0) {
+            *relayState = false;
+            printf("Relay is off");
+
+            break;
+          }
+        }
+        if (c == '\n') {
+          // you're starting a new line
+          currentLineIsBlank = true;
+        } else if (c != '\r') {
+          // you've gotten a character on the current line
+          currentLineIsBlank = false;
+        }
+      }
+    }
+    // give the web browser time to receive the data
+    delay(1);
+    // close the connection:
+    client.stop();
+  }
 }

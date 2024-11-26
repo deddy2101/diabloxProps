@@ -13,7 +13,7 @@ void CardReader::begin(SPIClass *spi)
 {
     pinMode(LED_CARD_OK, OUTPUT);
     digitalWrite(LED_CARD_OK, LOW);
-    delay(2000);
+    delay(100);
     pinMode(BUZZER_PIN, OUTPUT);
     tone(BUZZER_PIN, 5000, 100);
     pinMode(rst, OUTPUT);
@@ -65,7 +65,7 @@ bool CardReader::readCardAndHoldPresence(byte *correctSerial)
         nfc.haltTag();
         // Serial.printf("\033[1;31m[E] Error requesting tag\n\033[0m");
         retrunVAl[_AddressByteResponseSign] = _ByteErrReqTag;
-        return retrunVAl;
+        return false;
     }
 
     printf("\033[1;32m[I] Tag detected\n\033[0m");
@@ -73,7 +73,7 @@ bool CardReader::readCardAndHoldPresence(byte *correctSerial)
     memcpy(serial, data, 5);
 
     printf("\033[1;32m[I] The serial nb of the tag is:\n\033[0m");
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < 5;i++)
     {
         printf("%02X", serial[i]);
         printf(", ");
@@ -85,7 +85,7 @@ bool CardReader::readCardAndHoldPresence(byte *correctSerial)
     // any other tags in the area..
     nfc.selectTag(serial);
     //compare the serial number of the card with the correct serial number
-    for (int i=0 ; i< sizeof(serial); i++)
+    for (int i=0 ; i< 5;  i++)
     {
         if (serial[i] != correctSerial[i])
         {
