@@ -18,6 +18,11 @@
 
 CardReader cardReader(CS_1, RST_1);
 CardReader cardReader2(CS_2, RST_2);
+
+byte serial_1[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
+byte serial_2[5] = {0x00, 0x00, 0x00, 0x00, 0x00};
+
+
 #define NUM_LEDS 1
 #define DATA_PIN 48
 CRGB leds[NUM_LEDS];
@@ -33,11 +38,15 @@ void setup() {
   cardReader.begin(&spi);  
   cardReader2.begin(&spi);
 
-  //eth.init();
+  eth.init(&relayState);
   
 
 }
+bool isRelayOn = false;
 void loop() {
-  cardReader2.loop();
-  cardReader.loop();
+  if (cardReader.readCardAndHoldPresence(serial_1) && cardReader2.readCardAndHoldPresence(serial_2) && !isRelayOn) {
+    isRelayOn=true;
+    eth.apiCall("http://");
+  };
+  digitalWrite(RELAY_PIN, isRelayOn);
 }

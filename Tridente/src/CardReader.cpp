@@ -52,6 +52,52 @@ void CardReader::begin(SPIClass *spi)
 // the result is a byte array of 9 bytes the first 4 bytes are the serial number of the card
 // next single byte is the response byte
 // the next 4 bytes are the expiration date of the card
+bool CardReader::readCardAndHoldPresence(byte *correctSerial)
+{
+    // set array to null
+    memset(data, 0, sizeof(data));
+    memset(serial, 0, sizeof(serial));
+    // Send a general request out into the aether. If there is a tag in
+    // the area it will respond and the status will be MI_OK.
+    status = nfc.requestTag(MF1_REQIDL, data);
+    if (status != MI_OK)
+    {
+        nfc.haltTag();
+        // Serial.printf("\033[1;31m[E] Error requesting tag\n\033[0m");
+        retrunVAl[_AddressByteResponseSign] = _ByteErrReqTag;
+        return retrunVAl;
+    }
+
+    printf("\033[1;32m[I] Tag detected\n\033[0m");
+    status = nfc.antiCollision(data); // calculate the anti-collision value for the currently detected
+    memcpy(serial, data, 5);
+
+    printf("\033[1;32m[I] The serial nb of the tag is:\n\033[0m");
+    for (i = 0; i < 3; i++)
+    {
+        printf("%02X", serial[i]);
+        printf(", ");
+    }
+    printf("\n");
+
+    // Select the tag that we want to talk to. If we don't do this the
+    // chip does not know which tag it should talk if there should be
+    // any other tags in the area..
+    nfc.selectTag(serial);
+    //compare the serial number of the card with the correct serial number
+    for (int i=0 ; i< sizeof(serial); i++)
+    {
+        if (serial[i] != correctSerial[i])
+        {
+            printf("\033[1;31m[E] The serial number is not correct\n\033[0m");
+            return false;
+
+        }
+    }
+    printf("\033[1;32m[I] The serial number is correct\n\033[0m");
+    return true;
+}
+
 byte *CardReader::readCard()
 {
     // set array to null
@@ -147,6 +193,7 @@ byte *CardReader::readCard()
 
     return retrunVAl;
 }
+
 byte *CardReader::signCard(byte expDate[16], bool resign)
 {
     status = nfc.requestTag(MF1_REQIDL, data);
@@ -334,8 +381,7 @@ void CardReader::beepSuccess()
 }
 
 byte *result;
-
-void CardReader::loop()
+bool CardReader::loop()
 {
     
 
@@ -355,6 +401,7 @@ void CardReader::loop()
     if (status == MI_OK)
     {
         printf("\033[1;32m[I] Tag detected\n\033[0m");
+        return true;
     }
     }
 
@@ -368,4 +415,7 @@ void CardReader::loop()
     {
         
     }
-}
+    return false;
+} 
+
+

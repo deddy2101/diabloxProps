@@ -70,9 +70,9 @@ public:
     void begin(SPIClass *spi);
     // readcard returns an array of 5 bytes
     byte *readCard();
+    bool readCardAndHoldPresence(byte *correctSerial);
     byte *signCard(byte expdata[16], bool resign=false);
-    void loop();
-
+    bool loop();
 };
 
 #endif // !CARDREADER_H

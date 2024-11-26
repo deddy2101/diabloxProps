@@ -1,6 +1,6 @@
 #include "EthernetConnection.h"
 
-EthernetConnection::EthernetConnection()
+EthernetConnection::EthernetConnection() :  server(80)
 {
   mac[0] = 0xDE;
   mac[1] = 0xAD;
@@ -36,9 +36,9 @@ EthernetConnection::EthernetConnection()
   // 151.16.177.62
 }
 
-void EthernetConnection::init()
+void EthernetConnection::init(bool *relayState)
 {
-  //ledStatu
+  this->relayState = relayState;
   pinMode(ETH_RST, OUTPUT);
   digitalWrite(ETH_RST, LOW);
   delay(200);
@@ -57,7 +57,6 @@ void EthernetConnection::init()
   if (Ethernet.begin(mac))
   { // Dynamic IP setup
     printf("\033[1;32mDHCP OK!\033[0m\n");
-    digitalWrite(LED_ETH_OK, HIGH);
   }
   else
   {
@@ -77,7 +76,6 @@ void EthernetConnection::init()
     }
     Ethernet.begin(mac, ip, dns, gw, mask);
     printf("\033[1;32mSTATIC OK!\033[0m\n");
-    digitalWrite(LED_ETH_OK, LOW);
   }
   Ethernet.begin(mac, ip, dns, gw, mask);
   printf("\033[1;33mLocal IP : %s\033[0m\n", Ethernet.localIP().toString().c_str());
@@ -85,4 +83,79 @@ void EthernetConnection::init()
   printf("\033[1;33mGateway IP : %s\033[0m\n", Ethernet.gatewayIP().toString().c_str());
   printf("\033[1;33mDNS Server : %s\033[0m\n", Ethernet.dnsServerIP().toString().c_str());
   delay(1000);
+  initServer();
+
+}
+
+bool EthernetConnection::apiCall(String url) {
+  // Aprire una connessione al server
+  if (client.connect(serverIP, serverPort)) {
+    // Costruire la richiesta HTTP GET
+    client.print("GET ");
+    client.print(url);
+    client.println(" HTTP/1.1");
+    client.print("Host: ");
+    client.println(serverIP.toString()); // Specifica l'host
+    client.println("Connection: close");
+    client.println(); // Fine dell'header HTTP
+
+    // Attendi la risposta
+    unsigned long timeout = millis();
+    while (client.connected() && !client.available()) {
+      if (millis() - timeout > 5000) {
+        Serial.println("Timeout durante l'attesa della risposta");
+        client.stop();
+        return false; // Fallimento della chiamata
+      }
+    }
+
+    // Leggi la risposta
+    String response = "";
+    while (client.available()) {
+      char c = client.read();
+      response += c;
+    }
+
+    // Stampa la risposta per il debug
+    Serial.println("Risposta del server:");
+    Serial.println(response);
+
+    // Chiudi la connessione
+    client.stop();
+
+    // Puoi processare la risposta se necessario
+    if (response.indexOf("200 OK") != -1) {
+      return true; // Successo
+    } else {
+      return false; // Fallimento
+    }
+  } else {
+    // Non è stato possibile connettersi al server
+    Serial.println("Connessione al server fallita");
+    return false;
+  }
+}
+
+
+void EthernetConnection::initServer() {
+    // Endpoint per la root "/"
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", "ciao");
+    });
+
+    // Endpoint per "/reset"
+    server.on("/reset", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", "ok");
+        *relayState = false;
+        // Aggiungi la logica di reset
+        Serial.println("Richiesta di reset ricevuta");
+        // Puoi aggiungere un reset hardware o altre azioni qui
+        digitalWrite(ETH_RST, LOW);
+        delay(200);
+        digitalWrite(ETH_RST, HIGH);
+    });
+
+    // Avvia il server
+    server.begin();
+    Serial.println("Server HTTP avviato");
 }
