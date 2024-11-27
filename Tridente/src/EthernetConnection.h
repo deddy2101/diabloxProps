@@ -16,12 +16,10 @@ public:
     EthernetServer server;
     void loop();
     IPAddress ip;
-    bool apiCall(String url);
+    bool apiCall(String roomID, String action);
 
 
 private:
-    void handleRoot();
-    void handleText();
     bool *relayState;
   
     byte mac[6]; // Provide a size for the mac array

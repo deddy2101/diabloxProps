@@ -39,6 +39,16 @@ void setLedColor(CRGB color)
   FastLED.show();
 }
 
+// Task per Ethernet Loop
+void ethernetTask(void *parameter)
+{
+  for (;;)
+  {
+    eth.loop();
+    delay(10);  // Aggiungi un piccolo delay per evitare di saturare il core
+  }
+}
+
 void setup() {
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   //set led 1 to red
@@ -52,22 +62,31 @@ void setup() {
 
   eth.init(&relayState);
   setLedColor(CRGB::Green);
+  // Crea il task Ethernet sul core 0
+  xTaskCreatePinnedToCore(
+    ethernetTask,      // Nome della funzione
+    "Ethernet Task",   // Nome del task (per debug)
+    10000,             // Stack size
+    NULL,              // Parametro passato al task
+    1,                 // Priorità del task
+    NULL,              // Handle del task (opzionale)
+    0                  // Core su cui eseguire il task (0 per Core 0)
+  );
 
 }
-bool isRelayOn = false;
 void loop() {
-  if (cardReader.readCardAndHoldPresence(serial_1) && cardReader2.readCardAndHoldPresence(serial_2) && !isRelayOn) {
+  if (cardReader.readCardAndHoldPresence(serial_1) && cardReader2.readCardAndHoldPresence(serial_2) && !relayState) {
     relayState=true;
     
     printf("\033[1;32m[I] The relay is on\n\033[0m");
-    //eth.apiCall("http://");
+    digitalWrite(RELAY_PIN, relayState);
+    eth.apiCall("1", "{846e92d0-299c-454b-a799-3b4227ddb862}");
   };
+  digitalWrite(RELAY_PIN, relayState);
 
   if (relayState) {
     setLedColor(CRGB::Blue);
   } else {
     setLedColor(CRGB::Green);
   }
-  digitalWrite(RELAY_PIN, relayState);
-  eth.loop();
 }

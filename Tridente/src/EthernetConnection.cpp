@@ -1,6 +1,6 @@
 #include "EthernetConnection.h"
 
-EthernetConnection::EthernetConnection() :  server(80)
+EthernetConnection::EthernetConnection() : server(80)
 {
   mac[0] = 0xDE;
   mac[1] = 0xAD;
@@ -28,6 +28,12 @@ EthernetConnection::EthernetConnection() :  server(80)
   mask[1] = 255;
   mask[2] = 255;
   mask[3] = 0;
+
+  serverIP[0] = 192;
+  serverIP[1] = 168;
+  serverIP[2] = 1;
+  serverIP[3] = 1;
+
 }
 
 void EthernetConnection::init(bool *relayState)
@@ -43,10 +49,9 @@ void EthernetConnection::init(bool *relayState)
   printf("\033[1;33mDNS Server : %d.%d.%d.%d\033[0m\n", dns[0], dns[1], dns[2], dns[3]);
   printf("\033[1;33mGateway : %d.%d.%d.%d\033[0m\n", gw[0], gw[1], gw[2], gw[3]);
   printf("\033[1;33mSubnet Mask : %d.%d.%d.%d\033[0m\n", mask[0], mask[1], mask[2], mask[3]);
-  //spi pin
+  // spi pin
   Ethernet.init(10);
-  //print the spi pin 
-  
+  // print the spi pin
 
   if (Ethernet.begin(mac))
   { // Dynamic IP setup
@@ -78,102 +83,97 @@ void EthernetConnection::init(bool *relayState)
   printf("\033[1;33mDNS Server : %s\033[0m\n", Ethernet.dnsServerIP().toString().c_str());
   delay(1000);
   initServer();
-
 }
 
-bool EthernetConnection::apiCall(String url) {
+bool EthernetConnection::apiCall(String roomID, String action)
+{
+ //String roomID = ""; // Set the roomID if necessary
+ //String action = "{846e92d0-299c-454b-a799-3b4227ddb862}"; // Set the action as needed
+ String url = "http://" + serverIP.toString() + ":" + String(serverPort) + "/ersapi/runaction?roomID=" + roomID + "&action=" + action;
+ printf("URL: %s\n", url.c_str());
   // Aprire una connessione al server
-  if (client.connect(serverIP, serverPort)) {
-    // Costruire la richiesta HTTP GET
-    client.print("GET ");
-    client.print(url);
-    client.println(" HTTP/1.1");
-    client.print("Host: ");
-    client.println(serverIP.toString()); // Specifica l'host
-    client.println("Connection: close");
-    client.println(); // Fine dell'header HTTP
-
-    // Attendi la risposta
-    unsigned long timeout = millis();
-    while (client.connected() && !client.available()) {
-      if (millis() - timeout > 5000) {
-        Serial.println("Timeout durante l'attesa della risposta");
-        client.stop();
-        return false; // Fallimento della chiamata
+  if (client.connect(serverIP, serverPort))
+  {
+    printf("Connected to server\n");
+    client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                "Host: " + serverIP.toString() + "\r\n" +
+                "Connection: close\r\n\r\n");
+    // Wait for server response
+    while (client.connected() || client.available())
+    {
+      if (client.available())
+      {
+        String line = client.readStringUntil('\n');
+        Serial.println(line);
       }
     }
-
-    // Leggi la risposta
-    String response = "";
-    while (client.available()) {
-      char c = client.read();
-      response += c;
-    }
-
-    // Stampa la risposta per il debug
-    Serial.println("Risposta del server:");
-    Serial.println(response);
-
-    // Chiudi la connessione
     client.stop();
-
-    // Puoi processare la risposta se necessario
-    if (response.indexOf("200 OK") != -1) {
-      return true; // Successo
-    } else {
-      return false; // Fallimento
-    }
-  } else {
-    // Non è stato possibile connettersi al server
-    Serial.println("Connessione al server fallita");
+    printf("Connection closed\n");
+    return true;
+  }
+  else
+  {
+    printf("Connection failed\n");
     return false;
   }
+  return false;
 }
 
-
-void EthernetConnection::initServer() {
-   
+void EthernetConnection::initServer()
+{
 }
 
 String readString = String(30);
-void EthernetConnection::loop() {
+void EthernetConnection::loop()
+{
   EthernetClient client = server.available();
-  if (client) {
+  if (client)
+  {
     boolean currentLineIsBlank = true;
     readString = "";
     boolean endofFirstLine = false;
-    while (client.connected()) {
-      if (client.available()) {
+    while (client.connected())
+    {
+      if (client.available())
+      {
         char c = client.read();
 
-        //first time encounter a line return say true
-        if (c == '\n' && endofFirstLine == false) endofFirstLine = true;
+        // first time encounter a line return say true
+        if (c == '\n' && endofFirstLine == false)
+          endofFirstLine = true;
 
-        //MySerial.print(c); //print what server receives to serial monitor
+        // MySerial.print(c); //print what server receives to serial monitor
 
-        //read char by char HTTP request, limit to checking the first 30 and stop after first line
-        if ((readString.length() < 30) && (endofFirstLine == false)) {
-          //store characters to string
+        // read char by char HTTP request, limit to checking the first 30 and stop after first line
+        if ((readString.length() < 30) && (endofFirstLine == false))
+        {
+          // store characters to string
           readString += c;
         }
 
         // if you've gotten to the end of the line (received a newline
         // character) and the line is blank, the http request has ended
         // so you can send a reply
-        if (c == '\n' && currentLineIsBlank) {
+        if (c == '\n' && currentLineIsBlank)
+        {
 
-          //if readString starts with /s serve sensor data
-          if (readString.indexOf("/r") > 0) {
+          // if readString starts with /s serve sensor data
+          if (readString.indexOf("/r") > 0)
+          {
             *relayState = false;
+
             printf("Relay is off");
 
             break;
           }
         }
-        if (c == '\n') {
+        if (c == '\n')
+        {
           // you're starting a new line
           currentLineIsBlank = true;
-        } else if (c != '\r') {
+        }
+        else if (c != '\r')
+        {
           // you've gotten a character on the current line
           currentLineIsBlank = false;
         }
