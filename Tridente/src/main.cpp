@@ -44,7 +44,7 @@ void ethernetTask(void *parameter)
 {
   for (;;)
   {
-    eth.loop();
+    //eth.loop();
     delay(10);  // Aggiungi un piccolo delay per evitare di saturare il core
   }
 }
@@ -60,7 +60,7 @@ void setup() {
   cardReader.begin(&spi);  
   cardReader2.begin(&spi);
 
-  eth.init(&relayState);
+ eth.init(&relayState);
   setLedColor(CRGB::Green);
   // Crea il task Ethernet sul core 0
   xTaskCreatePinnedToCore(
@@ -80,7 +80,7 @@ void loop() {
     
     printf("\033[1;32m[I] The relay is on\n\033[0m");
     digitalWrite(RELAY_PIN, relayState);
-    eth.apiCall("1", "{846e92d0-299c-454b-a799-3b4227ddb862}");
+    eth.apiCall("1", "{080ffce7-f73e-4932-a7e3-c09a62701323}");
   };
   digitalWrite(RELAY_PIN, relayState);
 

@@ -12,7 +12,7 @@ EthernetConnection::EthernetConnection() : server(80)
   ip[0] = 192;
   ip[1] = 168;
   ip[2] = 1;
-  ip[3] = 133;
+  ip[3] = 150;
 
   dns[0] = 8;
   dns[1] = 8;
@@ -22,7 +22,7 @@ EthernetConnection::EthernetConnection() : server(80)
   gw[0] = 192;
   gw[1] = 168;
   gw[2] = 1;
-  gw[3] = 254;
+  gw[3] = 1;
 
   mask[0] = 255;
   mask[1] = 255;
@@ -32,8 +32,7 @@ EthernetConnection::EthernetConnection() : server(80)
   serverIP[0] = 192;
   serverIP[1] = 168;
   serverIP[2] = 1;
-  serverIP[3] = 1;
-
+  serverIP[3] = 109;
 }
 
 void EthernetConnection::init(bool *relayState)
@@ -88,17 +87,17 @@ void EthernetConnection::init(bool *relayState)
 
 bool EthernetConnection::apiCall(String roomID, String action)
 {
- //String roomID = ""; // Set the roomID if necessary
- //String action = "{846e92d0-299c-454b-a799-3b4227ddb862}"; // Set the action as needed
- String url = "http://" + serverIP.toString() + ":" + String(serverPort) + "/ersapi/runaction?roomID=" + roomID + "&action=" + action;
- printf("URL: %s\n", url.c_str());
+  // String roomID = ""; // Set the roomID if necessary
+  // String action = "{846e92d0-299c-454b-a799-3b4227ddb862}"; // Set the action as needed
+  String url = "http://" + serverIP.toString() + ":" + String(serverPort) + "/ersapi/runaction?roomID=" + roomID + "&action=" + action;
+  printf("URL: %s\n", url.c_str());
   // Aprire una connessione al server
   if (client.connect(serverIP, serverPort))
   {
     printf("Connected to server\n");
     client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                "Host: " + serverIP.toString() + "\r\n" +
-                "Connection: close\r\n\r\n");
+                 "Host: " + serverIP.toString() + "\r\n" +
+                 "Connection: close\r\n\r\n");
     // Wait for server response
     while (client.connected() || client.available())
     {
@@ -127,7 +126,7 @@ void EthernetConnection::initServer()
 String readString = String(30);
 void EthernetConnection::loop()
 {
-  //print thet is looping
+  // print thet is looping
   EthernetClient client = server.available();
   if (client)
   {
@@ -165,6 +164,14 @@ void EthernetConnection::loop()
             *relayState = false;
 
             printf("Relay is off");
+
+            break;
+          }
+          else if (readString.indexOf("/o") > 0)
+          {
+            *relayState = true;
+
+            printf("Relay is on");
 
             break;
           }

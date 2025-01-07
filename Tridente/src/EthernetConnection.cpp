@@ -12,7 +12,7 @@ EthernetConnection::EthernetConnection() : server(80)
   ip[0] = 192;
   ip[1] = 168;
   ip[2] = 1;
-  ip[3] = 133;
+  ip[3] = 151;
 
   dns[0] = 8;
   dns[1] = 8;
@@ -22,7 +22,7 @@ EthernetConnection::EthernetConnection() : server(80)
   gw[0] = 192;
   gw[1] = 168;
   gw[2] = 1;
-  gw[3] = 254;
+  gw[3] = 1;
 
   mask[0] = 255;
   mask[1] = 255;
@@ -32,7 +32,7 @@ EthernetConnection::EthernetConnection() : server(80)
   serverIP[0] = 192;
   serverIP[1] = 168;
   serverIP[2] = 1;
-  serverIP[3] = 1;
+  serverIP[3] = 109;
 
 }
 
@@ -163,6 +163,14 @@ void EthernetConnection::loop()
             *relayState = false;
 
             printf("Relay is off");
+
+            break;
+          }
+          else if (readString.indexOf("/o") > 0)
+          {
+            *relayState = true;
+
+            printf("Relay is on");
 
             break;
           }
