@@ -27,7 +27,13 @@ volatile bool toggle4 = false;
 volatile bool buttonpressed = false;
 bool relayState = false;
 
-EthernetConnection eth;
+IPAddress staticIP(192, 168, 1, 5);
+IPAddress dnsServer(8, 8, 8, 8);
+IPAddress gateway(192, 168, 1, 1);
+IPAddress subnetMask(255, 255, 255, 0);
+IPAddress serverIP(192, 168, 1, 109);
+int serverPort = 13801;
+EthernetConnection eth(&staticIP, &dnsServer, &gateway, &subnetMask, &serverIP, &serverPort);
 
 volatile unsigned long lastInterruptTime = 0;
 const unsigned long debounceDelay = 200;
@@ -124,11 +130,13 @@ void loop()
   {
     relayState = true;
     printf("ToggleState: %d %d %d %d\n", toggle1, toggle2, toggle3, toggle4);
+    eth.apiCall("{846e92d0-299c-454b-a799-3b4227ddb862}"); //api call for the porta opened
   } 
   if (buttonpressed)
   {
     buttonpressed = false;
     printf("Button pressed\n");
+    
   }
 
   if (relayState)
