@@ -6,30 +6,32 @@
 
 #define ETH_RST 46
 //this use the default SPI pins
-class Base;
 class EthernetConnection
 {
 public:
-    EthernetConnection();
+    EthernetConnection(IPAddress *ip, IPAddress *dns, IPAddress *gw, IPAddress *mask, IPAddress *serverIP, int *serverPort);
     void init(bool *relayState);
     EthernetClient client;
     EthernetServer server;
     void loop();
-    IPAddress ip;
-    bool apiCall(String roomID, String action);
+    IPAddress *ip;
+    bool apiCall(String action);
 
 
 private:
-    bool *relayState;
+     bool *relayState;
   
     byte mac[6]; // Provide a size for the mac array
-    Base *base;
-    IPAddress dns;
-    IPAddress gw;
-    IPAddress mask;
-    IPAddress serverIP; // IP del server
-    int serverPort = 8080; // Porta del server
-    void initServer();
+    IPAddress *dns;
+    IPAddress *gw;
+    IPAddress *mask;
+    IPAddress *serverIP; // IP del server
+    int *serverPort; // Porta del server
+    String commandSplitter = "_NEXT_ERSCOMMAND_";
+    bool connect();
+    void handleIncomingMessage();
+    void processIncomingMessage(String message);
+    String readLine = "";
 };
 
 #endif // ETHERNETCONNECTION_H

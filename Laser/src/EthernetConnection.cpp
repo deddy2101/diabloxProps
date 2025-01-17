@@ -1,39 +1,20 @@
 #include "EthernetConnection.h"
 
-EthernetConnection::EthernetConnection() : server(80)
+EthernetConnection::EthernetConnection(IPAddress *ip, IPAddress *dns, IPAddress *gw, IPAddress *mask, IPAddress *serverIP, int *serverPort) : server(80)
 {
   mac[0] = 0xDE;
   mac[1] = 0xAD;
   mac[2] = 0xBE;
   mac[3] = 0xEF;
   mac[4] = 0xFE;
-  mac[5] = 0xEE;
+  mac[5] = 0xEA;
 
-  ip[0] = 192;
-  ip[1] = 168;
-  ip[2] = 1;
-  ip[3] = 133;
-
-  dns[0] = 8;
-  dns[1] = 8;
-  dns[2] = 8;
-  dns[3] = 8;
-
-  gw[0] = 192;
-  gw[1] = 168;
-  gw[2] = 1;
-  gw[3] = 254;
-
-  mask[0] = 255;
-  mask[1] = 255;
-  mask[2] = 255;
-  mask[3] = 0;
-
-  serverIP[0] = 192;
-  serverIP[1] = 168;
-  serverIP[2] = 1;
-  serverIP[3] = 1;
-
+  this->ip = ip;
+  this->dns = dns;
+  this->gw = gw;
+  this->mask = mask;
+  this->serverIP = serverIP;
+  this->serverPort = serverPort;
 }
 
 void EthernetConnection::init(bool *relayState)
@@ -74,116 +55,112 @@ void EthernetConnection::init(bool *relayState)
     {
       printf("\033[1;31m[E] Ethernet cable is not connected.\033[0m\n");
     }
-    Ethernet.begin(mac, ip, dns, gw, mask);
+    Ethernet.begin(mac, *ip, *dns, *gw, *mask);
     printf("\033[1;32mSTATIC OK!\033[0m\n");
   }
-  Ethernet.begin(mac, ip, dns, gw, mask);
+  Ethernet.begin(mac, *ip, *dns, *gw, *mask);
   printf("\033[1;33mLocal IP : %s\033[0m\n", Ethernet.localIP().toString().c_str());
   printf("\033[1;33mSubnet Mask : %s\033[0m\n", Ethernet.subnetMask().toString().c_str());
   printf("\033[1;33mGateway IP : %s\033[0m\n", Ethernet.gatewayIP().toString().c_str());
   printf("\033[1;33mDNS Server : %s\033[0m\n", Ethernet.dnsServerIP().toString().c_str());
-  delay(1000);
-  initServer();
 }
 
-bool EthernetConnection::apiCall(String roomID, String action)
+bool EthernetConnection::apiCall(String action)
 {
- //String roomID = ""; // Set the roomID if necessary
- //String action = "{846e92d0-299c-454b-a799-3b4227ddb862}"; // Set the action as needed
- String url = "http://" + serverIP.toString() + ":" + String(serverPort) + "/ersapi/runaction?roomID=" + roomID + "&action=" + action;
- printf("URL: %s\n", url.c_str());
-  // Aprire una connessione al server
-  if (client.connect(serverIP, serverPort))
+  // the structure is @ + action + commandSplitter
+  String message = "@" + action + commandSplitter;
+  // check if client is connected
+  if (!client.connected())
+  { 
+    printf("Client not connected. Retry.");
+    return false;
+  }
+  else
   {
-    printf("Connected to server\n");
-    client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                "Host: " + serverIP.toString() + "\r\n" +
-                "Connection: close\r\n\r\n");
-    // Wait for server response
-    while (client.connected() || client.available())
-    {
-      if (client.available())
-      {
-        String line = client.readStringUntil('\n');
-        Serial.println(line);
-      }
-    }
+    printf("Sending message: %s\n", message.c_str());
+    client.print(message);
+    return true;
+  }
+}
+void EthernetConnection::loop()
+{
+  // check if client is connected
+  if (!client.connected())
+  {
     client.stop();
-    printf("Connection closed\n");
+    connect();
+  }
+  else
+  {
+    handleIncomingMessage();
+  }
+}
+
+bool EthernetConnection::connect()
+{
+  if (client.connect(*serverIP, *serverPort))
+  {
+    client.flush();
+    printf("Connected.");
     return true;
   }
   else
   {
-    printf("Connection failed\n");
+    printf("Connection failed. Retry.");
     return false;
   }
-  return false;
 }
 
-void EthernetConnection::initServer()
+void EthernetConnection::processIncomingMessage(String message)
 {
-}
 
-String readString = String(30);
-void EthernetConnection::loop()
-{
-  //print thet is looping
-  EthernetClient client = server.available();
-  if (client)
+  int index = message.indexOf(commandSplitter);
+  if (index != -1)
   {
-    boolean currentLineIsBlank = true;
-    readString = "";
-    boolean endofFirstLine = false;
-    while (client.connected())
+    message.remove(index, commandSplitter.length());
+  }
+
+  // Stampa il messaggio ricevuto senza il commandSplitter
+  printf("Message received (cleaned): %s\n", message.c_str());
+
+  // Converti il messaggio in una costante per il switch
+  const char *command = message.c_str();
+
+  // Usa uno switch per gestire i comandi
+  if (strcmp(command, "on") == 0)
+  {
+    if (relayState != nullptr)
     {
-      if (client.available())
-      {
-        char c = client.read();
-
-        // first time encounter a line return say true
-        if (c == '\n' && endofFirstLine == false)
-          endofFirstLine = true;
-
-        // MySerial.print(c); //print what server receives to serial monitor
-
-        // read char by char HTTP request, limit to checking the first 30 and stop after first line
-        if ((readString.length() < 30) && (endofFirstLine == false))
-        {
-          // store characters to string
-          readString += c;
-        }
-
-        // if you've gotten to the end of the line (received a newline
-        // character) and the line is blank, the http request has ended
-        // so you can send a reply
-        if (c == '\n' && currentLineIsBlank)
-        {
-
-          // if readString starts with /s serve sensor data
-          if (readString.indexOf("/r") > 0)
-          {
-            *relayState = false;
-
-            printf("Relay is off");
-
-            break;
-          }
-        }
-        if (c == '\n')
-        {
-          // you're starting a new line
-          currentLineIsBlank = true;
-        }
-        else if (c != '\r')
-        {
-          // you've gotten a character on the current line
-          currentLineIsBlank = false;
-        }
-      }
+      *relayState = true;
+      printf("Relay state set to ON\n");
     }
-    // give the web browser time to receive the data
-    delay(1);
-    // close the connection:
-    client.stop();
+  }
+  else if (strcmp(command, "reset") == 0)
+  {
+    if (relayState != nullptr)
+    {
+      *relayState = false;
+      printf("Relay state set to OFF\n");
+    }
+  }
+  else
+  {
+    printf("Unknown command: %s\n", command);
+  }
+}
+
+void EthernetConnection::handleIncomingMessage()
+{
+  if (client.available() > 0)
+  {
+    char thisChar = client.read();
+    readLine += String(thisChar);
+    if (readLine.endsWith(commandSplitter))
+    {
+      client.flush();
+      printf("Line received from server:");
+      processIncomingMessage(readLine);
+      readLine = "";
+    }
   }
 }
