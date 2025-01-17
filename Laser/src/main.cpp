@@ -24,6 +24,7 @@ volatile bool toggle1 = false;
 volatile bool toggle2 = false;
 volatile bool toggle3 = false;
 volatile bool toggle4 = false;
+volatile bool buttonpressed = false;
 bool relayState = false;
 
 EthernetConnection eth;
@@ -38,6 +39,7 @@ void handleResetButtonPress()
   {
     relayState = !relayState;
     lastInterruptTime = currentTime;
+    buttonpressed = true;
   }
 }
 
@@ -118,14 +120,15 @@ void loop()
   digitalWrite(LASER_PIN_4, LOW);
   delay(4);
 
-  printf("Toggle 1: %d\n", toggle1);
-  printf("Toggle 2: %d\n", toggle2);
-  printf("Toggle 3: %d\n", toggle3);
-  printf("Toggle 4: %d\n", toggle4);
-
   if (!toggle1 && !toggle2 && !toggle3 && !toggle4 && !relayState)
   {
     relayState = true;
+    printf("ToggleState: %d %d %d %d\n", toggle1, toggle2, toggle3, toggle4);
+  } 
+  if (buttonpressed)
+  {
+    buttonpressed = false;
+    printf("Button pressed\n");
   }
 
   if (relayState)
