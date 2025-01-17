@@ -124,7 +124,12 @@ void loop()
   digitalWrite(LASER_PIN_4, LOW);
   delay(4);
 
-  if (toggle1 && toggle2 && toggle3 && toggle4 && !relayState)
+  printf("Toggle 1: %d\n", toggle1);
+  printf("Toggle 2: %d\n", toggle2);
+  printf("Toggle 3: %d\n", toggle3);
+  printf("Toggle 4: %d\n", toggle4);
+
+  if (!toggle1 && !toggle2 && !toggle3 && !toggle4 && !relayState)
   {
     relayState = true;
     eth.apiCall("{846e92d0-299c-454b-a799-3b4227ddb862}");

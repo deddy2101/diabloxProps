@@ -50,7 +50,7 @@ void ethernetTask(void *parameter)
 {
   for (;;)
   {
-    eth.loop();
+    //eth.loop();
     delay(10);  // Aggiungi un piccolo delay per evitare di saturare il core
   }
 }
@@ -66,7 +66,7 @@ void setup() {
   //cardReader.begin(&spi);  
   //cardReader2.begin(&spi);
 
-  eth.init(&relayState);
+ eth.init(&relayState);
   setLedColor(CRGB::Green);
   // Crea il task Ethernet sul core 0
   xTaskCreatePinnedToCore(
@@ -84,9 +84,15 @@ void loop() {
   if (cardReader.readCardAndHoldPresence(serial_1) && cardReader2.readCardAndHoldPresence(serial_2) && !relayState) {
     relayState=true;
     
+<<<<<<< HEAD
    printf("\033[1;32m[I] The relay is on\n\033[0m");
      digitalWrite(RELAY_PIN, relayState);
      eth.apiCall("{846e92d0-299c-454b-a799-3b4227ddb862}");
+=======
+    printf("\033[1;32m[I] The relay is on\n\033[0m");
+    digitalWrite(RELAY_PIN, relayState);
+    eth.apiCall("1", "{080ffce7-f73e-4932-a7e3-c09a62701323}");
+>>>>>>> bbcb986d676a44028530b04a5e065ad868bc56ba
   };
   digitalWrite(RELAY_PIN, relayState);
 
