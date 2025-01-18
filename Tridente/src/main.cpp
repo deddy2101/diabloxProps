@@ -21,16 +21,16 @@ byte serial_1[5] = {0x43, 0x0D, 0x8D, 0x18, 0xDB};
 byte serial_2[5] = {0xD3, 0x85, 0x9C, 0xED, 0x27};
 
 #define NUM_LEDS 1
-#define DATA_PIN 2
+#define DATA_PIN 48
 CRGB leds[NUM_LEDS];
 bool relayState = false;
 IPAddress staticIP(192, 168, 1, 6);
 IPAddress dnsServer(8, 8, 8, 8);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnetMask(255, 255, 255, 0);
-IPAddress serverIP(192, 168, 1, 109);
-int serverPort = 13802;
-EthernetConnection eth(&staticIP, &dnsServer, &gateway, &subnetMask, &serverIP, &serverPort);
+IPAddress serverIP(192, 168, 1, 109);//109
+int serverPort = 13801;
+EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, serverPort);
 SPIClass spi;
 
 void setLedColor(CRGB color)
@@ -58,7 +58,8 @@ void setup()
   // set led 1 to red
   setLedColor(CRGB::Red);
 
-  // spi.begin(18, 16, 17, 40);
+  
+  spi.begin(18, 16, 17, 40);
 
   pinMode(RELAY_PIN, OUTPUT);
   // cardReader.begin(&spi);
@@ -81,14 +82,14 @@ void loop()
 {
 
   if (cardReader.readCardAndHoldPresence(serial_1) && cardReader2.readCardAndHoldPresence(serial_2) && !relayState)
-  {
-    relayState = true;
+   {
+     relayState = true;
 
-    printf("\033[1;32m[I] The relay is on\n\033[0m");
-    digitalWrite(RELAY_PIN, relayState);
-    eth.apiCall("{846e92d0-299c-454b-a799-3b4227ddb862}");
+     printf("\033[1;32m[I] The relay is on\n\033[0m");
+     digitalWrite(RELAY_PIN, relayState);
+     eth.apiCall("{846e92d0-299c-454b-a799-3b4227ddb862}"); // sends the api call to the server
     
-  };
+   };
   digitalWrite(RELAY_PIN, relayState);
 
   if (relayState)

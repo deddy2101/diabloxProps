@@ -9,12 +9,12 @@
 class EthernetConnection
 {
 public:
-    EthernetConnection(IPAddress *ip, IPAddress *dns, IPAddress *gw, IPAddress *mask, IPAddress *serverIP, int *serverPort);
+    EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw, IPAddress mask, IPAddress serverIP, int serverPort);
     void init(bool *relayState);
     EthernetClient client;
     EthernetServer server;
     void loop();
-    IPAddress *ip;
+    IPAddress ip;
     bool apiCall(String action);
 
 
@@ -22,11 +22,11 @@ private:
      bool *relayState;
   
     byte mac[6]; // Provide a size for the mac array
-    IPAddress *dns;
-    IPAddress *gw;
-    IPAddress *mask;
-    IPAddress *serverIP; // IP del server
-    int *serverPort; // Porta del server
+    IPAddress dns;
+    IPAddress gw;
+    IPAddress mask;
+    IPAddress serverIP; // IP del server
+    int serverPort; // Porta del server
     String commandSplitter = "_NEXT_ERSCOMMAND_";
     bool connect();
     void handleIncomingMessage();

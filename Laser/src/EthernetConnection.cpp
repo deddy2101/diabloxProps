@@ -1,13 +1,13 @@
 #include "EthernetConnection.h"
 
-EthernetConnection::EthernetConnection(IPAddress *ip, IPAddress *dns, IPAddress *gw, IPAddress *mask, IPAddress *serverIP, int *serverPort) : server(80)
+EthernetConnection::EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw, IPAddress mask, IPAddress serverIP, int serverPort) : server(80)
 {
   mac[0] = 0xDE;
   mac[1] = 0xAD;
   mac[2] = 0xBE;
   mac[3] = 0xEF;
   mac[4] = 0xFE;
-  mac[5] = 0xEA;
+  mac[5] = 0xEE;
 
   this->ip = ip;
   this->dns = dns;
@@ -55,10 +55,10 @@ void EthernetConnection::init(bool *relayState)
     {
       printf("\033[1;31m[E] Ethernet cable is not connected.\033[0m\n");
     }
-    Ethernet.begin(mac, *ip, *dns, *gw, *mask);
+    Ethernet.begin(mac,ip, dns, gw, mask);
     printf("\033[1;32mSTATIC OK!\033[0m\n");
   }
-  Ethernet.begin(mac, *ip, *dns, *gw, *mask);
+  Ethernet.begin(mac, ip, dns, gw, mask);
   printf("\033[1;33mLocal IP : %s\033[0m\n", Ethernet.localIP().toString().c_str());
   printf("\033[1;33mSubnet Mask : %s\033[0m\n", Ethernet.subnetMask().toString().c_str());
   printf("\033[1;33mGateway IP : %s\033[0m\n", Ethernet.gatewayIP().toString().c_str());
@@ -98,15 +98,15 @@ void EthernetConnection::loop()
 
 bool EthernetConnection::connect()
 {
-  if (client.connect(*serverIP, *serverPort))
+  if (client.connect(serverIP, serverPort))
   {
     client.flush();
-    printf("Connected.");
+    printf("Connected.\n");
     return true;
   }
   else
   {
-    printf("Connection failed. Retry.");
+    printf("Connection failed. Retry.\n");
     return false;
   }
 }
