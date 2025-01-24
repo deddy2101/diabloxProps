@@ -3,6 +3,7 @@
 
 #include <SPI.h>
 #include <EthernetESP32.h>
+#include <FastLED.h>
 
 #define ETH_RST 46
 //this use the default SPI pins
@@ -13,6 +14,11 @@ public:
     void init(bool *relayState);
     EthernetClient client;
     EthernetServer server;
+    void setLEDS(CRGB *leds, size_t numLEDs) 
+    { 
+        this->leds = leds; 
+        this->numLEDs = numLEDs; 
+    }
     void loop();
     IPAddress ip;
     bool apiCall(String action);
@@ -20,7 +26,8 @@ public:
 
 private:
      bool *relayState;
-  
+     CRGB *leds = nullptr; // Puntatore all'array di LED
+    size_t numLEDs = 0;   // Numero di LED nell'array
     byte mac[6]; // Provide a size for the mac array
     IPAddress dns;
     IPAddress gw;
