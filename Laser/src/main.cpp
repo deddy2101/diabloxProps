@@ -32,8 +32,8 @@ IPAddress dnsServer(8, 8, 8, 8);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnetMask(255, 255, 255, 0);
 IPAddress serverIP(192, 168, 1, 109);
-int serverPort = 13801;
-EthernetConnection eth(&staticIP, &dnsServer, &gateway, &subnetMask, &serverIP, &serverPort);
+int serverPort = 13802;
+EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, serverPort);
 
 volatile unsigned long lastInterruptTime = 0;
 const unsigned long debounceDelay = 200;
@@ -71,6 +71,7 @@ void ethernetTask(void *parameter)
 void setup()
 {
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
+  eth.setLEDS(leds, NUM_LEDS);
   setLedColor(CRGB::Red);
 
   pinMode(LASER_PIN_1, OUTPUT);
@@ -130,7 +131,7 @@ void loop()
   {
     relayState = true;
     printf("ToggleState: %d %d %d %d\n", toggle1, toggle2, toggle3, toggle4);
-    eth.apiCall("{846e92d0-299c-454b-a799-3b4227ddb862}"); //api call for the porta opened
+    //eth.apiCall("{846e92d0-299c-454b-a799-3b4227ddb862}"); //api call for the porta opened
   } 
   if (buttonpressed)
   {

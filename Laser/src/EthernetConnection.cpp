@@ -87,6 +87,11 @@ void EthernetConnection::loop()
   // check if client is connected
   if (!client.connected())
   {
+    for (int i = 0; i < this->numLEDs; i++)
+    {
+      this->leds[i] = CRGB::Yellow;
+    }
+    FastLED.show();
     client.stop();
     connect();
   }
@@ -100,9 +105,15 @@ bool EthernetConnection::connect()
 {
   if (client.connect(serverIP, serverPort))
   {
+    for (int i = 0; i < this->numLEDs; i++)
+    {
+      this->leds[i] = CRGB::Green;
+    }
+    FastLED.show();
     client.flush();
     printf("Connected.\n");
     return true;
+  
   }
   else
   {
