@@ -103,13 +103,14 @@ void EthernetConnection::loop()
 
 bool EthernetConnection::connect()
 {
+  if (millis() - lastReconnectAttempt < 1000)
+  {
+    return false;
+  }
+  lastReconnectAttempt = millis();
   if (client.connect(serverIP, serverPort))
   {
-    for (int i = 0; i < this->numLEDs; i++)
-    {
-      this->leds[i] = CRGB::Green;
-    }
-    FastLED.show();
+    
     client.flush();
     printf("Connected.\n");
     return true;

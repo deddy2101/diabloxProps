@@ -40,6 +40,8 @@ private:
     void handleIncomingMessage();
     void processIncomingMessage(String message);
     String readLine = "";
+    
+    long lastReconnectAttempt = 0;
 };
 
 #endif // ETHERNETCONNECTION_H
