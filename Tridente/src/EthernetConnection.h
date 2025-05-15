@@ -14,6 +14,7 @@ public:
     void init(bool *relayState);
     EthernetClient client;
     EthernetServer server;
+    int connectionRetries = 0;
     void setLEDS(CRGB *leds, size_t numLEDs) 
     { 
         this->leds = leds; 

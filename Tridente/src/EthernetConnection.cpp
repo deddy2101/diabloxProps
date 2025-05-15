@@ -84,14 +84,14 @@ bool EthernetConnection::apiCall(String action)
 }
 void EthernetConnection::loop()
 {
+  if(connectionRetries > 3 ){
+    ESP.restart();
+  }
   // check if client is connected
   if (!client.connected())
   {
-    for (int i = 0; i < this->numLEDs; i++)
-    {
-      this->leds[i] = CRGB::Yellow;
-    }
-    FastLED.show();
+    connectionRetries++;
+    printf("client not connected");
     client.stop();
     connect();
   }
@@ -139,7 +139,7 @@ void EthernetConnection::processIncomingMessage(String message)
   const char *command = message.c_str();
 
   // Usa uno switch per gestire i comandi
-  if (strcmp(command, "on") == 0)
+  if (strcmp(command, "onFONTANA") == 0)
   {
     if (relayState != nullptr)
     {
@@ -147,7 +147,7 @@ void EthernetConnection::processIncomingMessage(String message)
       printf("Relay state set to ON\n");
     }
   }
-  else if (strcmp(command, "reset") == 0)
+  else if (strcmp(command, "resetFONTANA") == 0)
   {
     if (relayState != nullptr)
     {
