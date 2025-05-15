@@ -5,7 +5,7 @@
 #include <EthernetESP32.h>
 #include <FastLED.h>
 
-#define ETH_RST 46
+#define ETH_RST 8
 //this use the default SPI pins
 class EthernetConnection
 {
