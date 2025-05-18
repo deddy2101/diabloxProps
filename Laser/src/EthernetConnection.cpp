@@ -7,7 +7,7 @@ EthernetConnection::EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw
   mac[2] = 0xBE;
   mac[3] = 0xEF;
   mac[4] = 0xFE;
-  mac[5] = 0xEE;
+  mac[5] = 0xEF;
 
   this->ip = ip;
   this->dns = dns;
@@ -33,7 +33,7 @@ void EthernetConnection::init(bool *relayState)
   printf("\033[1;33mGateway : %d.%d.%d.%d\033[0m\n", gw[0], gw[1], gw[2], gw[3]);
   printf("\033[1;33mSubnet Mask : %d.%d.%d.%d\033[0m\n", mask[0], mask[1], mask[2], mask[3]);
   // spi pin
-  Ethernet.init(10);
+  Ethernet.init(12);
   // print the spi pin
 
   if (Ethernet.begin(mac))
