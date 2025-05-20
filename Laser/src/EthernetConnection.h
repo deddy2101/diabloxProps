@@ -22,6 +22,9 @@ public:
     void loop();
     IPAddress ip;
     bool apiCall(String action);
+    void setLedCallback(void (*callback)(CRGB color)) {
+        ledCallback = callback;
+      }
 
 
 private:
@@ -39,6 +42,13 @@ private:
     void handleIncomingMessage();
     void processIncomingMessage(String message);
     String readLine = "";
+    void (*ledCallback)(CRGB color);  // Puntatore alla funzione
+    void triggerLedChange(CRGB color) {
+        if (ledCallback) {
+          ledCallback(color);
+        }
+      }
+
 };
 
 #endif // ETHERNETCONNECTION_H

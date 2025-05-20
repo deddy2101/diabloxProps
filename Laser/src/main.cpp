@@ -18,6 +18,8 @@
 #define RESET_PROP_BUTTON 16
 #define NUM_LEDS 12
 #define DATA_PIN 47
+#define T_ON 4
+#define T_OFF 8
 CRGB leds[NUM_LEDS];
 
 volatile bool toggle1 = false;
@@ -37,7 +39,7 @@ unsigned long timer2 = 0;
 unsigned long timer3 = 0;
 unsigned long timer4 = 0;
 
-const unsigned long toggleDuration = 90000; // 90 secondi in millisecondi
+const unsigned long toggleDuration = 10000; // 90 secondi in millisecondi
 
 IPAddress staticIP(192, 168, 1, 5);
 IPAddress dnsServer(8, 8, 8, 8);
@@ -85,7 +87,7 @@ void setup()
   
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   setLedColor(CRGB::Yellow);
-  eth.setLEDS(leds, NUM_LEDS);
+  eth.setLedCallback(setLedColor);
   eth.init(&relayState);
 
 
@@ -152,82 +154,74 @@ void loop() {
 
   // LASER 1
   digitalWrite(LASER_PIN_1, HIGH);
-  delay(4);
+  delay(T_ON);
   toggle1 = digitalRead(INPUT_LASER_1) == LOW;
   digitalWrite(LASER_PIN_1, LOW);
-  delay(4);
+
   if (toggle1) {
     toggleState1 = true;
     timer1 = now;
   }
   if (toggleState1 && now - timer1 >= toggleDuration) {
-    toggleState1 = digitalRead(INPUT_LASER_1) == LOW;
+    toggleState1 = toggle1;
     timer1 = now; // Riavvia se ancora LOW
   }
-
+  delay(T_OFF);
   // LASER 2
   digitalWrite(LASER_PIN_2, HIGH);
-  delay(4);
+  delay(T_ON);
   toggle2 = digitalRead(INPUT_LASER_2) == LOW;
   digitalWrite(LASER_PIN_2, LOW);
-  delay(4);
+  
   if (toggle2) {
     toggleState2 = true;
     timer2 = now;
   }
   if (toggleState2 && now - timer2 >= toggleDuration) {
-    toggleState2 = digitalRead(INPUT_LASER_2) == LOW;
+    toggleState2 = toggle2;
     timer2 = now;
   }
-
+  delay(T_OFF);
   // LASER 3
   digitalWrite(LASER_PIN_3, HIGH);
-  delay(4);
+  delay(T_ON);
   toggle3 = digitalRead(INPUT_LASER_3) == LOW;
   digitalWrite(LASER_PIN_3, LOW);
-  delay(4);
   if (toggle3) {
     toggleState3 = true;
     timer3 = now;
   }
   if (toggleState3 && now - timer3 >= toggleDuration) {
-    toggleState3 = digitalRead(INPUT_LASER_3) == LOW;
+    toggleState3 = toggle3;
     timer3 = now;
   }
+  delay(T_OFF);
 
   // LASER 4
   digitalWrite(LASER_PIN_4, HIGH);
-  delay(4);
+  delay(T_ON);
   toggle4 = digitalRead(INPUT_LASER_4) == LOW;
   digitalWrite(LASER_PIN_4, LOW);
-  delay(4);
+  
   if (toggle4) {
     toggleState4 = true;
     timer4 = now;
   }
   if (toggleState4 && now - timer4 >= toggleDuration) {
-    toggleState4 = digitalRead(INPUT_LASER_4) == LOW;
+    toggleState4 = toggle4;
     timer4 = now;
   }
-
+  delay(T_OFF);
   // Stampa per debug
   //printf("ToggleStates: %d %d %d %d\n", toggleState1, toggleState2, toggleState3, toggleState4);
   //print tggle
-// printf("Toggle: %d %d %d %d\n", toggle1, toggle2, toggle3, toggle4);
+  //printf("Toggle: %d %d %d %d\n", toggle1, toggle2, toggle3, toggle4);
 
   // Se tutti i toggle state sono attivi, attiva il relay
   if (toggleState1 && toggleState2 && toggleState3 && toggleState4 && !relayState) {
     relayState = true;
     eth.apiCall("{846e92d0-299c-454b-a799-3b4227ddb862}"); //api call for the porta opened
 
-  }
-
-  // Stato relay
-  digitalWrite(RELAY_PIN, relayState);
-
-  if (buttonpressed) {
-    buttonpressed = false;
-    printf("Button pressed\n");
   }
   updateToggleStateLEDs();
 

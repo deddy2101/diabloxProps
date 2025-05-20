@@ -19,6 +19,8 @@ EthernetConnection::EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw
 
 void EthernetConnection::init(bool *relayState)
 {
+  triggerLedChange(CRGB::Yellow);
+  delay(1000);
   this->relayState = relayState;
   pinMode(ETH_RST, OUTPUT);
   digitalWrite(ETH_RST, LOW);
@@ -49,6 +51,7 @@ void EthernetConnection::init(bool *relayState)
       while (true)
       {
         delay(1); // do nothing, no point running without Ethernet hardware
+        triggerLedChange(CRGB::Red);
       }
     }
     if (Ethernet.linkStatus() == LinkOFF)
@@ -63,6 +66,7 @@ void EthernetConnection::init(bool *relayState)
   printf("\033[1;33mSubnet Mask : %s\033[0m\n", Ethernet.subnetMask().toString().c_str());
   printf("\033[1;33mGateway IP : %s\033[0m\n", Ethernet.gatewayIP().toString().c_str());
   printf("\033[1;33mDNS Server : %s\033[0m\n", Ethernet.dnsServerIP().toString().c_str());
+  triggerLedChange(CRGB::Green);
 }
 
 bool EthernetConnection::apiCall(String action)
