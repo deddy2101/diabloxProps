@@ -7,7 +7,7 @@ EthernetConnection::EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw
   mac[2] = 0xBE;
   mac[3] = 0xEF;
   mac[4] = 0xFE;
-  mac[5] = 0xEE;
+  mac[5] = 0xAE;
 
   this->ip = ip;
   this->dns = dns;
