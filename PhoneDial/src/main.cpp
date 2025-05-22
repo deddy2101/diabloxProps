@@ -1,67 +1,82 @@
 #include <Arduino.h>
-/*
- * This sketch is for a rotary dial. It counts the number of pulses and sends the number down the serial line.
- * It uses a debounce delay to prevent false readings.
- * It also uses a delay to determine if the dial has finished rotating.
- * The dial is connected to pin 2.
- * The dial is a simple switch that goes from open to closed when the dial is turned.
- * The dial is a rotary switch that goes from 0-9 and then back to 0.
- */
-int needToPrint = 0;
-int count;
-int in = 2;
-int lastState = LOW;
-int trueState = LOW;
-long lastStateChangeTime = 0;
-int cleared = 0;
+#include "DFRobotDFPlayerMini.h"
 
-// constants
+#define INPUT_1 39 // impulsi
+#define INPUT_2 40 // stato composizione (basso = attivo)
+#define INPUT_3 21 // 021
+#define INPUT_4 18 // 18
+#define INPUT_5 17 // 16
+#define ERROR_LED INPUT_3
+#define TX 2
+#define RX 1
+HardwareSerial mySerial(1); // Puoi usare anche 2, se 1 è già usata altrove
 
-int dialHasFinishedRotatingAfterMs = 100;
-int debounceDelay = 10;
+const int ledPin = LED_BUILTIN;
+
+const int debounceTime = 10;
+const int input2DebounceDelay = 50; // tempo minimo per considerare la fine della cifra (ms)
+
+int pulseCount = 0;
+int lastReadState = LOW;
+int stableState = LOW;
+unsigned long lastStateChangeTime = 0;
+
+bool dialingInProgress = false;
+bool digitCaptured = false;
+
+int inputCode[6];
+int inputIndex = 0;
+
+const int correctCode[6] = {4, 2, 3, 6, 1, 0};
+
+// Per debounce su INPUT_2
+int lastInput2State = HIGH;
+int stableInput2State = HIGH;
+unsigned long input2LastChangeTime = 0;
+// Create the Player object
+DFRobotDFPlayerMini player;
 
 void setup()
 {
-  Serial.begin(9600);
-  pinMode(in, INPUT);
+  Serial.begin(115200);
+  mySerial.begin(9600, SERIAL_8N1, 8, 9); // RX = 8, TX = 9
+
+  delay(1000);
+  pinMode(INPUT_1, INPUT_PULLUP);
+  pinMode(INPUT_2, INPUT_PULLUP);
+  pinMode(INPUT_3, OUTPUT);
+  pinMode(INPUT_4, OUTPUT);
+  pinMode(INPUT_5, INPUT_PULLUP);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+  if (player.begin(mySerial))
+  {
+    Serial.println("DFPlayer Mini connesso correttamente!");
+  }
+  else
+  {
+    Serial.println("Errore nella connessione con DFPlayer Mini.");
+    while (1)
+    {
+      digitalWrite(ERROR_LED, HIGH);
+    }
+  }
 }
 
 void loop()
 {
-  int reading = digitalRead(in);
 
-  if ((millis() - lastStateChangeTime) > dialHasFinishedRotatingAfterMs)
+  bool phoneState = !digitalRead(INPUT_5);
+  if (phoneState)
   {
-    // the dial isn't being dialed, or has just finished being dialed.
-    if (needToPrint)
-    {
-      // if it's only just finished being dialed, we need to send the number down the serial
-      // line and reset the count. We mod the count by 10 because '0' will send 10 pulses.
-      Serial.print(count % 10, DEC);
-      needToPrint = 0;
-      count = 0;
-      cleared = 0;
-    }
+    Serial.println("Telefono in uso");
+    digitalWrite(ledPin, LOW);
+    digitalWrite(INPUT_3, HIGH); // accende led error
+    return;
   }
-
-  if (reading != lastState)
+  else
   {
-    lastStateChangeTime = millis();
+    Serial.println("Telefono non in uso");
   }
-  if ((millis() - lastStateChangeTime) > debounceDelay)
-  {
-    // debounce - this happens once it's stablized
-    if (reading != trueState)
-    {
-      // this means that the switch has either just gone from closed->open or vice versa.
-      trueState = reading;
-      if (trueState == HIGH)
-      {
-        // increment the count of pulses if it's gone high.
-        count++;
-        needToPrint = 1; // we'll need to print this number (once the dial has finished rotating)
-      }
-    }
-  }
-  lastState = reading;
+  
 }
