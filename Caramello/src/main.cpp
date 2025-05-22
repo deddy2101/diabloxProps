@@ -80,6 +80,19 @@ void ethernetTask(void *parameter)
   }
 }
 
+bool input1_state = false;
+bool input2_state = false;
+bool input3_state = false;
+bool input4_state = false;
+bool input5_state = false;
+bool input6_state = false;
+bool input7_state = false;
+bool input8_state = false;
+bool input9_state = false;
+bool input10_state = false;
+bool input11_state = false;
+bool input12_state = false;
+
 void setup()
 {
   Serial.begin(115200);
@@ -107,24 +120,40 @@ void setup()
   //print
 
 }
+void openRelay()
+{
+  digitalWrite(RELAY_PIN, HIGH);
+  delay(500);
+  digitalWrite(RELAY_PIN, LOW);
+  relayState = true;
+}
 
 void loop()
 {
-  bool input1 = digitalRead(INPUT_1);
-  bool input2 = digitalRead(INPUT_2);
-  bool input3 = digitalRead(INPUT_3);
-  bool input4 = digitalRead(INPUT_4);
-  bool input5 = digitalRead(INPUT_5);
-  bool input6 = digitalRead(INPUT_6);
-  bool input7 = digitalRead(INPUT_7);
-  bool input8 = digitalRead(INPUT_8);
-  bool input9 = digitalRead(INPUT_9);
-  bool input10 = digitalRead(INPUT_10);
-  bool input11 = digitalRead(INPUT_11);
-  bool input12 = digitalRead(INPUT_12);
-  Serial.printf("Input 1: %d, Input 2: %d, Input 3: %d, Input 4: %d, Input 5: %d, Input 6: %d, Input 7: %d, Input 8: %d, Input 9: %d, Input 10: %d, Input 11: %d, Input 12: %d\n", input1, input2, input3, input4, input5, input6, input7, input8, input9, input10, input11, input12);
-  digitalWrite(RELAY_PIN, !input1 || !input2 || !input3 || !input4 || !input5 || !input6 || !input7 || !input8 || !input9 || !input10 || !input11 || !input12);
- 
-  Serial.println("Looping..."); 
-  delay(10); // Aggiungi un piccolo delay per evitare di saturare il core
+  const int inputs[] = {INPUT_1, INPUT_2, INPUT_3, INPUT_4, INPUT_5, INPUT_6, INPUT_7, INPUT_8, INPUT_9, INPUT_10, INPUT_11, INPUT_12};
+  bool* input_states[] = {&input1_state, &input2_state, &input3_state, &input4_state, &input5_state, &input6_state, &input7_state, &input8_state, &input9_state, &input10_state, &input11_state, &input12_state};
+
+  for (int i = 0; i < 12; ++i) {
+    bool input = digitalRead(inputs[i]);
+    if (!input != *input_states[i]) {
+      *input_states[i] = !input;
+      if (input == LOW) {
+        Serial.print("Input ");
+        Serial.print(i + 1);
+        Serial.println(" ON");
+      }
+    }
+  }
+  // if all are true 
+  if (input1_state && input2_state && input3_state && input4_state && input5_state && input6_state && input7_state && input8_state && input9_state && input10_state && input11_state && input12_state) {
+    Serial.println("All inputs are ON");
+    eth.apiCall("ALL_ON");
+    openRelay();
+  } else {
+    
+  }
+  
+  eth.loop();
+  
 }
+
