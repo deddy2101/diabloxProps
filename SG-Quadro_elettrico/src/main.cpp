@@ -2,42 +2,31 @@
 #include <EthernetConnection.h>
 #include <FastLED.h>
 #include <TimerOne.h>
-
-
-
+#include <PCF8575.h>
 
 #define ETH_RESET_PIN 8
 
-#define INPUT_LASER_1 4
-#define INPUT_LASER_2 5
-#define INPUT_LASER_3 6
-#define INPUT_LASER_4 7
-#define RESET_PROP_BUTTON 16
 #define NUM_LEDS 1
-#define DATA_PIN 16
 #define RELAY_PIN 1
 
-#define INPUT_1 39 //39
-#define INPUT_2 40 //40
-#define INPUT_3 21 //021
-#define INPUT_4 18 //18
-#define INPUT_5 17 //16
-#define INPUT_6 2 //2
-#define INPUT_7 4 //4
-#define INPUT_8 6 //6
-#define INPUT_9 10 //10
-#define INPUT_10 13 //13
-#define INPUT_11 3 //3
-#define INPUT_12 5//5
+#define INPUT_1 39  // 39
+#define INPUT_2 40  // 40
+#define INPUT_3 21  // 021
+#define INPUT_4 18  // 18
+#define INPUT_5 17  // 16
+#define INPUT_6 2   // 2
+#define INPUT_7 4   // 4
+#define INPUT_8 6   // 6
+#define INPUT_9 10  // 10
+#define INPUT_10 13 // 13
+#define INPUT_11 3  // 3
+#define INPUT_12 5  // 5
 
 CRGB leds[NUM_LEDS];
-
-volatile bool toggle1 = false;
-volatile bool toggle2 = false;
-volatile bool toggle3 = false;
-volatile bool toggle4 = false;
-volatile bool buttonpressed = false;
-bool relayState = false;
+unsigned long lastActivityTime   = 0;
+unsigned long lastRandomToggle   = 0;
+const unsigned long timeoutIdle  = 120000; // 2 minuti
+const unsigned long intervalRandom = 5000; // 5 secondi
 
 IPAddress staticIP(192, 168, 1, 5);
 IPAddress dnsServer(8, 8, 8, 8);
@@ -50,16 +39,24 @@ EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, serve
 volatile unsigned long lastInterruptTime = 0;
 const unsigned long debounceDelay = 200;
 
-void handleResetButtonPress()
-{
-  unsigned long currentTime = millis();
-  if (currentTime - lastInterruptTime > debounceDelay)
-  {
-    relayState = !relayState;
-    lastInterruptTime = currentTime;
-    buttonpressed = true;
-  }
-}
+PCF8575 EXT_IN(0x20);
+PCF8575 EXT_OUT(0x21);
+PCF8575 PCF[2] = {EXT_IN, EXT_OUT};
+
+// lo stato di tutti i pulsanti
+uint8_t buttonState[16] = {0};
+uint8_t buttonStateOld[16] = {0};
+
+// Definiamo N combinazioni possibili; qui ne metto 3 di esempio
+const uint8_t NUM_WIN_PATTERNS = 3;
+// Ciascuna riga è una combinazione: {gruppo0, gruppo1, gruppo2, gruppo3, gruppo4}
+// dove il valore è 0,1 o 2 (il pulsante all’interno del gruppo)
+const uint8_t winPatterns[NUM_WIN_PATTERNS][5] = {
+  { 0, 1, 2, 0, 1 },   // es. combo A
+  { 2, 2, 0, 1, 2 },   // es. combo B
+  { 1, 0, 1, 2, 0 }    // es. combo C
+};
+
 
 void setLedColor(CRGB color)
 {
@@ -69,17 +66,13 @@ void setLedColor(CRGB color)
   }
   FastLED.show();
 }
-
-// Task per Ethernet Loop
-void ethernetTask(void *parameter)
+void openRelay()
 {
-  for (;;)
-  {
-    eth.loop();
-    delay(10);  // Aggiungi un piccolo delay per evitare di saturare il core
-  }
+  digitalWrite(RELAY_PIN, HIGH);
+  delay(200);
+  digitalWrite(RELAY_PIN, LOW);
+  
 }
-
 void setup()
 {
   Serial.begin(115200);
@@ -96,28 +89,139 @@ void setup()
   pinMode(INPUT_10, INPUT_PULLUP);
   pinMode(INPUT_11, INPUT_PULLUP);
   pinMode(INPUT_12, INPUT_PULLUP);
-  
-  Serial.println("Starting...");
-  FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
-  eth.setLEDS(leds, NUM_LEDS);
-  setLedColor(CRGB::Red);
-  pinMode(RELAY_PIN, OUTPUT);
-  eth.init(&relayState);
-  setLedColor(CRGB::Green);
-  //print
+  Wire.begin();
 
+  Serial.println("Starting...");
+  pinMode(RELAY_PIN, OUTPUT);
+  eth.init([](String msg) {
+    // qui chiamo la tua openRelay senza parametri
+    openRelay();
+  });
+
+  // print
+  for (int i = 0; i < 2; i++)
+  {
+    PCF[i].begin();
+  }
 }
+
+uint16_t lastState = 0;
+uint16_t state = 0;
+void readAndUpdateStates() {
+  // 1) Leggo tutti i 16 bit dal PCF8575
+  lastState = state;
+  uint16_t raw = EXT_IN.read16();
+  state=raw;
+
+  if (state != lastState) {
+    lastActivityTime = millis();
+  }
+  // 2) Scompongo i bit in buttonState[]
+  for (int i = 0; i < 16; ++i) {
+    buttonState[i] = (raw >> i) & 0x01;
+  }
+
+  // 3) Per ogni gruppo di 3 pulsanti, tengo solo l'ultimo premuto
+  const int GROUPS = 5;
+  for (int g = 0; g < GROUPS; ++g) {
+    int base = g * 3;      // indice di partenza del gruppo
+    int lastPressed = -1;
+
+    // trovo l'ultimo indice premuto nel gruppo
+    for (int j = 0; j < 3; ++j) {
+      int idx = base + j;
+      if (buttonState[idx]) {
+        lastPressed = idx;
+      }
+    }
+
+    // disattivo tutti i pulsanti del gruppo tranne lastPressed
+    for (int j = 0; j < 3; ++j) {
+      int idx = base + j;
+      if (idx != lastPressed) {
+        buttonState[idx] = 0;
+      }
+    }
+  }
+
+  // 4) Ricompongo il word da scrivere su EXT_OUT
+  uint16_t toWrite = 0;
+  for (int i = 0; i < 16; ++i) {
+    if (buttonState[i]) {
+      toWrite |= (1 << i);
+    }
+  }
+
+  // 5) Scrivo il nuovo stato sui LED
+  EXT_OUT.write16(toWrite);
+}
+
+
+void verifyWin() {
+  // 1) Calcolo l'indice selezionato in ogni gruppo
+  uint8_t current[5];
+  for (int g = 0; g < 5; ++g) {
+    current[g] = 255;  // valore impossibile per identificare errori
+    for (int j = 0; j < 3; ++j) {
+      int idx = g * 3 + j;
+      if (buttonState[idx]) {
+        current[g] = j;
+        break;          // esco alla prima 1 trovata (c’è sempre al massimo un 1)
+      }
+    }
+  }
+
+  // 2) Confronto con ciascuna pattern
+  bool win = false;
+  for (int p = 0; p < NUM_WIN_PATTERNS; ++p) {
+    bool match = true;
+    for (int g = 0; g < 5; ++g) {
+      if (current[g] != winPatterns[p][g]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      win = true;
+      break;
+    }
+  }
+
+  // 3) Azione a seconda del risultato
+  if (win) {
+    // vincita: LED verde e, per esempio, invio un messaggio seriale
+    
+    Serial.println("=== WINNER! ===");
+    openRelay();
+    // qui potresti anche inviare un pacchetto via ethernet, 
+    // oppure attivare un buzzer, ecc.
+  }
+  else {
+    // non-vincita: LED rosso o spento
+    Serial.println("=== NO WIN ===");
+  }
+}
+
+
+
+
 
 void loop()
 {
-  bool input1 = digitalRead(INPUT_1);
-  bool input2 = digitalRead(INPUT_2);
-  bool input3 = digitalRead(INPUT_3);
-  bool input4 = digitalRead(INPUT_4);
-  
-  Serial.printf("Input 1: %d, Input 2: %d, Input 3: %d, Input 4: %d, \n", input1, input2, input3, input4);
-  digitalWrite(RELAY_PIN, !input1 || !input2 || !input3 || !input4);
- 
-  Serial.println("Looping..."); 
-  delay(10); // Aggiungi un piccolo delay per evitare di saturare il core
+  readAndUpdateStates();
+  verifyWin();
+  eth.loop();
+  delay(10);
+  // 2) Se sono passati più di timeoutIdle da ultima attività,
+  //    ogni intervalRandom aggiorna EXT_OUT con stato random
+  unsigned long now = millis();
+  if ( now - lastActivityTime > timeoutIdle) {
+    if (now - lastRandomToggle > intervalRandom) {
+      uint16_t rnd = random(0, 0xFFFF);
+      EXT_OUT.write16(rnd);
+      Serial.println("=== RANDOM STATE ===");
+      lastRandomToggle = now;
+    }
+  }
 }
+  
