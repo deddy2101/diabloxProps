@@ -90,6 +90,12 @@ void setup()
   pinMode(INPUT_4, INPUT_PULLUP);
   pinMode(INPUT_5, INPUT_PULLUP);
   pinMode(INPUT_6, INPUT_PULLUP);
+  pinMode(INPUT_7, INPUT_PULLUP);
+  pinMode(INPUT_8, INPUT_PULLUP);
+  pinMode(INPUT_9, INPUT_PULLUP);
+  pinMode(INPUT_10, INPUT_PULLUP);
+  pinMode(INPUT_11, INPUT_PULLUP);
+  pinMode(INPUT_12, INPUT_PULLUP);
   
   Serial.println("Starting...");
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
@@ -108,11 +114,9 @@ void loop()
   bool input2 = digitalRead(INPUT_2);
   bool input3 = digitalRead(INPUT_3);
   bool input4 = digitalRead(INPUT_4);
-  bool input5 = digitalRead(INPUT_5);
-  bool input6 = digitalRead(INPUT_6);
-
-  Serial.printf("Input 1: %d, Input 2: %d, Input 3: %d, Input 4: %d, Input 5: %d, Input 6: %d\n", input1, input2, input3, input4, input5, input6);
-  digitalWrite(RELAY_PIN, !input1 || !input2 || !input3 || !input4 || !input5 || !input6);
+  
+  Serial.printf("Input 1: %d, Input 2: %d, Input 3: %d, Input 4: %d, \n", input1, input2, input3, input4);
+  digitalWrite(RELAY_PIN, !input1 || !input2 || !input3 || !input4);
  
   Serial.println("Looping..."); 
   delay(10); // Aggiungi un piccolo delay per evitare di saturare il core
