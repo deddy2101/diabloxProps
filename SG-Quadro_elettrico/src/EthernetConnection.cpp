@@ -17,7 +17,7 @@ EthernetConnection::EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw
   this->serverPort = serverPort;
 }
 
-void EthernetConnection::init(void (*callback)(String))
+void EthernetConnection::init(void (*callback)())
 {
   this->callback = callback;
   pinMode(ETH_RST, OUTPUT);
@@ -149,7 +149,7 @@ void EthernetConnection::processIncomingMessage(String message)
   {
     if (this->callback != nullptr)
     {
-      this->callback("on");
+      this->callback();
       Serial.printf("Relay state set to ON\n");
     }
   }

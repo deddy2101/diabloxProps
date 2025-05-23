@@ -11,7 +11,9 @@ class EthernetConnection
 {
 public:
     EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw, IPAddress mask, IPAddress serverIP, int serverPort);
-    void init(bool *relayState);
+    void(*callback)();
+
+    void init(void (*callback)());
     EthernetClient client;
     EthernetServer server;
     void setLEDS(CRGB *leds, size_t numLEDs) 

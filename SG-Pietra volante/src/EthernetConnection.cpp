@@ -17,9 +17,9 @@ EthernetConnection::EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw
   this->serverPort = serverPort;
 }
 
-void EthernetConnection::init(bool *relayState)
+void EthernetConnection::init(void (*callback)())
 {
-  this->relayState = relayState;
+  this->callback = callback;
   pinMode(ETH_RST, OUTPUT);
   digitalWrite(ETH_RST, LOW);
   delay(200);
@@ -147,19 +147,11 @@ void EthernetConnection::processIncomingMessage(String message)
   // Usa uno switch per gestire i comandi
   if (strcmp(command, "on") == 0)
   {
-    if (relayState != nullptr)
+    if (this->callback != NULL)
     {
-      *relayState = true;
-      Serial.printf("Relay state set to ON\n");
+      this->callback();
     }
-  }
-  else if (strcmp(command, "reset") == 0)
-  {
-    if (relayState != nullptr)
-    {
-      *relayState = false;
-      Serial.printf("Relay state set to OFF\n");
-    }
+    Serial.printf("Relay opened.\n");
   }
   else
   {

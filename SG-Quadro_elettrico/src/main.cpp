@@ -69,10 +69,7 @@ void setup()
 
   Serial.println("Starting...");
   pinMode(RELAY_PIN, OUTPUT);
-  eth.init([](String msg)
-           {
-    // qui chiamo la tua openRelay senza parametri
-    openRelay(); });
+  eth.init(openRelay);
 
   // print
   for (int i = 0; i < 2; i++)

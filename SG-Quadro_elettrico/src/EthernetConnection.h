@@ -13,9 +13,9 @@ public:
     EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw, IPAddress mask, IPAddress serverIP, int serverPort);
     //void init prende in ingresso una funzione da chiamare quando rivediamo un messaggio
     //puntatore a funzione
-    void(*callback)(String);
+    void(*callback)();
 
-    void init(void (*callback)(String));
+    void init(void (*callback)());
     EthernetClient client;
     EthernetServer server;
     void setLEDS(CRGB *leds, size_t numLEDs) 

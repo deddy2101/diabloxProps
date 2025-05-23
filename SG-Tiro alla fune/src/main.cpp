@@ -50,25 +50,7 @@ EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, serve
 volatile unsigned long lastInterruptTime = 0;
 const unsigned long debounceDelay = 200;
 
-void handleResetButtonPress()
-{
-  unsigned long currentTime = millis();
-  if (currentTime - lastInterruptTime > debounceDelay)
-  {
-    relayState = !relayState;
-    lastInterruptTime = currentTime;
-    buttonpressed = true;
-  }
-}
 
-void setLedColor(CRGB color)
-{
-  for (int i = 0; i < NUM_LEDS; i++)
-  {
-    leds[i] = color;
-  }
-  FastLED.show();
-}
 
 // Task per Ethernet Loop
 void ethernetTask(void *parameter)
@@ -78,6 +60,13 @@ void ethernetTask(void *parameter)
     eth.loop();
     delay(10);  // Aggiungi un piccolo delay per evitare di saturare il core
   }
+}
+
+void openRelay()
+{
+  digitalWrite(RELAY_PIN, HIGH);
+  delay(200);
+  digitalWrite(RELAY_PIN, LOW);
 }
 
 void setup()
@@ -100,10 +89,8 @@ void setup()
   Serial.println("Starting...");
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   eth.setLEDS(leds, NUM_LEDS);
-  setLedColor(CRGB::Red);
   pinMode(RELAY_PIN, OUTPUT);
-  eth.init(&relayState);
-  setLedColor(CRGB::Green);
+  eth.init(openRelay);
   //print
 
 }

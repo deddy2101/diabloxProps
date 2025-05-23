@@ -46,7 +46,12 @@ IPAddress subnetMask(255, 255, 255, 0);
 IPAddress serverIP(192, 168, 1, 109);
 int serverPort = 13802;
 EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, serverPort);
-
+void openRelay()
+{
+  digitalWrite(RELAY_PIN, HIGH);
+  delay(200);
+  digitalWrite(RELAY_PIN, LOW);
+}
 volatile unsigned long lastInterruptTime = 0;
 const unsigned long debounceDelay = 200;
 
@@ -61,24 +66,7 @@ void handleResetButtonPress()
   }
 }
 
-void setLedColor(CRGB color)
-{
-  for (int i = 0; i < NUM_LEDS; i++)
-  {
-    leds[i] = color;
-  }
-  FastLED.show();
-}
 
-// Task per Ethernet Loop
-void ethernetTask(void *parameter)
-{
-  for (;;)
-  {
-    eth.loop();
-    delay(10);  // Aggiungi un piccolo delay per evitare di saturare il core
-  }
-}
 
 bool input1_state = false;
 bool input2_state = false;
@@ -115,18 +103,12 @@ void setup()
   eth.setLEDS(leds, NUM_LEDS);
   setLedColor(CRGB::Red);
   pinMode(RELAY_PIN, OUTPUT);
-  eth.init(&relayState);
+  eth.init(openRelay);
   setLedColor(CRGB::Green);
   //print
 
 }
-void openRelay()
-{
-  digitalWrite(RELAY_PIN, HIGH);
-  delay(500);
-  digitalWrite(RELAY_PIN, LOW);
-  relayState = true;
-}
+
 
 void loop()
 {
