@@ -80,6 +80,9 @@ void setup()
 
 uint16_t lastState = 0;
 uint16_t state = 0;
+bool toggleState[16] = {0};      // stato logico memorizzato (acceso/spento)
+bool prevRawState[16] = {0};     // stato fisico precedente (per rilevare fronte di salita)
+
 void readAndUpdateStates()
 {
   // 1) Leggo tutti i 16 bit dal PCF8575
@@ -91,20 +94,27 @@ void readAndUpdateStates()
   {
     lastActivityTime = millis();
   }
-  // 2) Scompongo i bit in buttonState[]
+
+  // 2) Gestione del toggle per ogni pulsante
   for (int i = 0; i < 16; ++i)
   {
-    buttonState[i] = !(raw >> i) & 0x01; // ! per input_pullup
+    bool currentRaw = !(raw >> i & 0x01); // active LOW (pulsante premuto)
+    if (currentRaw && !prevRawState[i])
+    {
+      // Fronte di salita: premuto ora ma non nel ciclo precedente
+      toggleState[i] = !toggleState[i]; // toggle dello stato
+    }
+    prevRawState[i] = currentRaw;        // aggiorno lo stato precedente
+    buttonState[i] = toggleState[i];     // aggiorno lo stato logico
   }
 
-  // 3) Per ogni gruppo di 3 pulsanti, tengo solo l'ultimo premuto
+  // 3) Per ogni gruppo di 3 pulsanti, tengo solo l’ultimo premuto
   const int GROUPS = 5;
   for (int g = 0; g < GROUPS; ++g)
   {
-    int base = g * 3; // indice di partenza del gruppo
+    int base = g * 3;
     int lastPressed = -1;
 
-    // trovo l'ultimo indice premuto nel gruppo
     for (int j = 0; j < 3; ++j)
     {
       int idx = base + j;
@@ -114,13 +124,13 @@ void readAndUpdateStates()
       }
     }
 
-    // disattivo tutti i pulsanti del gruppo tranne lastPressed
     for (int j = 0; j < 3; ++j)
     {
       int idx = base + j;
       if (idx != lastPressed)
       {
         buttonState[idx] = 0;
+        toggleState[idx] = 0; // anche il toggle viene disattivato per coerenza
       }
     }
   }
