@@ -81,32 +81,61 @@ void setup()
   pinMode(INPUT_8, INPUT_PULLUP);
   pinMode(INPUT_9, INPUT_PULLUP);
   pinMode(INPUT_10, INPUT_PULLUP);
+  pinMode(INPUT_11, OUTPUT);
+  pinMode(INPUT_12, OUTPUT);
   
   Serial.println("Starting...");
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   eth.setLEDS(leds, NUM_LEDS);
   pinMode(RELAY_PIN, OUTPUT);
-  eth.init(openRelay);
+  //eth.init(openRelay);
   //print
 
 }
 
 void loop()
 {
-  bool input1 = digitalRead(INPUT_1);
-  bool input2 = digitalRead(INPUT_2);
-  bool input3 = digitalRead(INPUT_3);
-  bool input4 = digitalRead(INPUT_4);
-  bool input5 = digitalRead(INPUT_5);
-  bool input6 = digitalRead(INPUT_6);
-  bool input7 = digitalRead(INPUT_7);
-  bool input8 = digitalRead(INPUT_8);
-  bool input9 = digitalRead(INPUT_9);
-  bool input10 = digitalRead(INPUT_10);
+  bool input1 = digitalRead(INPUT_1); //1
+  bool input2 = digitalRead(INPUT_2); //2
+  bool input3 = digitalRead(INPUT_3); //3
+  bool input4 = digitalRead(INPUT_4); //4
+  bool input5 = digitalRead(INPUT_5); //5
+  bool input6 = digitalRead(INPUT_6); //6
+  bool input7 = digitalRead(INPUT_7); //7
+  bool input8 = digitalRead(INPUT_8); //8
+  
+  bool currentInput9 = digitalRead(INPUT_9);
+  bool currentInput10 = digitalRead(INPUT_10);
 
-  Serial.printf("Input 1: %d, Input 2: %d, Input 3: %d, Input 4: %d, Input 5: %d, Input 6: %d, Input 7: %d, Input 8: %d, Input 9: %d, Input 10: %d\n", input1, input2, input3, input4, input5, input6, input7, input8, input9, input10);
-  digitalWrite(RELAY_PIN, !input1 || !input2 || !input3 || !input4 || !input5 || !input6 || !input7 || !input8 || !input9 || !input10);
+  static bool lastInput9 = HIGH; // Stato precedente di INPUT_9
+  static bool lastInput10 = HIGH; // Stato precedente di INPUT_10
+
+  // MOTORE 1
+  if (!input1 && !input2 && !input3 && !input4) {
+    digitalWrite(INPUT_11, HIGH); // Attiva motore 1
+  }
+  // Rileva falling edge su INPUT_9
+  if (lastInput9 == HIGH && currentInput9 == LOW) {
+    digitalWrite(INPUT_11, LOW);  // Disattiva motore 1
+  }
+
+  // MOTORE 2
+  if (!input5 && !input6 && !input7 && !input8) {
+    digitalWrite(INPUT_12, HIGH); // Attiva motore 2
+  }
+  // Rileva falling edge su INPUT_10
+  if (lastInput10 == HIGH && currentInput10 == LOW) {
+    digitalWrite(INPUT_12, LOW);  // Disattiva motore 2
+  }
+
+  // Aggiorna i precedenti
+  lastInput9 = currentInput9;
+  lastInput10 = currentInput10;
+
+
+  Serial.printf("Input 1: %d, Input 2: %d, Input 3: %d, Input 4: %d, Input 5: %d, Input 6: %d, Input 7: %d, Input 8: %d\n", input1, input2, input3, input4, input5, input6, input7, input8);
+  digitalWrite(RELAY_PIN, !input1 || !input2 || !input3 || !input4 || !input5 || !input6 || !input7 || !input8 );
  
-  Serial.println("Looping..."); 
+  
   delay(10); // Aggiungi un piccolo delay per evitare di saturare il core
 }
