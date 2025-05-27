@@ -11,6 +11,7 @@ class EthernetConnection
 {
 public:
     EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw, IPAddress mask, IPAddress serverIP, int serverPort);
+    EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw, IPAddress mask, IPAddress serverIP, const std::array<byte,6>& mac,int serverPort);
     void(*callback)();
     
 
@@ -33,7 +34,7 @@ private:
 
      CRGB *leds = nullptr; // Puntatore all'array di LED
     size_t numLEDs = 0;   // Numero di LED nell'array
-    byte mac[6]; // Provide a size for the mac array
+    std::array<byte,6> mac;
     IPAddress dns;
     IPAddress gw;
     IPAddress mask;

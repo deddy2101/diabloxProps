@@ -43,7 +43,7 @@ IPAddress gateway(192, 168, 1, 1);
 IPAddress subnetMask(255, 255, 255, 0);
 IPAddress serverIP(192, 168, 1, 109);
 int serverPort = 13802;
-EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, serverPort);
+EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, std::array<byte,6>{0xDE,0xAD,0xBE,0xEF,0xFE,0xAF}, serverPort);
 
 volatile unsigned long lastInterruptTime = 0;
 const unsigned long debounceDelay = 200;

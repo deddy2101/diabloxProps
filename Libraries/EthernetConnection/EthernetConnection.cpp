@@ -1,13 +1,22 @@
 #include "EthernetConnection.h"
 
-EthernetConnection::EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw, IPAddress mask, IPAddress serverIP, int serverPort) : server(80)
+EthernetConnection::EthernetConnection(IPAddress ip, 
+                                       IPAddress dns, 
+                                       IPAddress gw, 
+                                       IPAddress mask, 
+                                       IPAddress serverIP, 
+                                       int serverPort) : server(80)
 {
+  /*
   mac[0] = 0xDE;
   mac[1] = 0xAD;
   mac[2] = 0xBE;
   mac[3] = 0xEF;
   mac[4] = 0xFE;
   mac[5] = 0xAE;
+  */
+ // Inizializza il MAC address con un valore di esempio
+  mac = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xAE}; // esempio di MAC address
 
   this->ip = ip;
   this->dns = dns;
@@ -15,6 +24,25 @@ EthernetConnection::EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw
   this->mask = mask;
   this->serverIP = serverIP;
   this->serverPort = serverPort;
+}
+
+EthernetConnection::EthernetConnection(IPAddress ip,
+                                       IPAddress dns,
+                                       IPAddress gw,
+                                       IPAddress mask,
+                                       IPAddress serverIP,
+                                       const std::array<byte,6>& macIn,
+                                       int serverPort)
+  : ip(ip)
+  , dns(dns)
+  , gw(gw)
+  , mask(mask)
+  , serverIP(serverIP)
+  , mac(macIn)
+  , serverPort(serverPort)
+  , server(80)
+{
+    // eventuale setup addizionale...
 }
 
 void EthernetConnection::init(void (*callback)(), void (*resetCallback)())
@@ -25,7 +53,7 @@ void EthernetConnection::init(void (*callback)(), void (*resetCallback)())
   digitalWrite(ETH_RST, LOW);
   delay(200);
   digitalWrite(ETH_RST, HIGH);
-  //print the spi pin
+  // print the spi pin
   Serial.printf("\033[1;33mEterneth Init\033[0m\n");
   Serial.printf("\033[1;33mMISO : %d\033[0m\n", MISO);
   Serial.printf("\033[1;33mMOSI : %d\033[0m\n", MOSI);
@@ -42,7 +70,7 @@ void EthernetConnection::init(void (*callback)(), void (*resetCallback)())
   Ethernet.init(12);
   // print the spi pin
 
-  if (Ethernet.begin(mac))
+  if (Ethernet.begin(mac.data()))
   { // Dynamic IP setup
     Serial.printf("\033[1;32mDHCP OK!\033[0m\n");
   }
@@ -63,16 +91,15 @@ void EthernetConnection::init(void (*callback)(), void (*resetCallback)())
     {
       Serial.printf("\033[1;31m[E] Ethernet cable is not connected.\033[0m\n");
     }
-    Ethernet.begin(mac,ip, dns, gw, mask);
+    Ethernet.begin(mac.data(), ip, dns, gw, mask);
     Serial.printf("\033[1;32mSTATIC OK!\033[0m\n");
   }
-  Ethernet.begin(mac, ip, dns, gw, mask);
+  Ethernet.begin(mac.data(), ip, dns, gw, mask);
   Serial.printf("\033[1;33mLocal IP : %s\033[0m\n", Ethernet.localIP().toString().c_str());
   Serial.printf("\033[1;33mSubnet Mask : %s\033[0m\n", Ethernet.subnetMask().toString().c_str());
   Serial.printf("\033[1;33mGateway IP : %s\033[0m\n", Ethernet.gatewayIP().toString().c_str());
   Serial.printf("\033[1;33mDNS Server : %s\033[0m\n", Ethernet.dnsServerIP().toString().c_str());
 }
-
 
 bool EthernetConnection::apiCall(String action)
 {
@@ -80,7 +107,7 @@ bool EthernetConnection::apiCall(String action)
   String message = "@" + action + commandSplitter;
   // check if client is connected
   if (!client.connected())
-  { 
+  {
     Serial.printf("Client not connected. Retry.");
     return false;
   }
@@ -122,7 +149,6 @@ bool EthernetConnection::connect()
     client.flush();
     Serial.printf("Connected.\n");
     return true;
-  
   }
   else
   {

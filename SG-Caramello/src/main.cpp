@@ -45,7 +45,7 @@ IPAddress gateway(192, 168, 1, 1);
 IPAddress subnetMask(255, 255, 255, 0);
 IPAddress serverIP(192, 168, 1, 109);
 int serverPort = 13802;
-EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, serverPort);
+EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, std::array<byte,6>{0xDE,0xAD,0xBE,0xEF,0xFE,0xAB}, serverPort);
 void openRelay()
 {
   digitalWrite(RELAY_PIN, HIGH);
@@ -101,10 +101,8 @@ void setup()
   Serial.println("Starting...");
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   eth.setLEDS(leds, NUM_LEDS);
-  setLedColor(CRGB::Red);
   pinMode(RELAY_PIN, OUTPUT);
   eth.init(openRelay);
-  setLedColor(CRGB::Green);
   //print
 
 }
