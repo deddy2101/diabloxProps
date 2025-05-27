@@ -12,8 +12,10 @@ class EthernetConnection
 public:
     EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw, IPAddress mask, IPAddress serverIP, int serverPort);
     void(*callback)();
+    
 
-    void init(void (*callback)());
+    void init(void (*callback)(), void (*resetCallback)() = nullptr);
+    void(*resetCallback)();
     EthernetClient client;
     EthernetServer server;
     void setLEDS(CRGB *leds, size_t numLEDs) 
@@ -28,6 +30,7 @@ public:
 
 private:
      bool *relayState;
+
      CRGB *leds = nullptr; // Puntatore all'array di LED
     size_t numLEDs = 0;   // Numero di LED nell'array
     byte mac[6]; // Provide a size for the mac array

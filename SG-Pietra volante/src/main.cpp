@@ -57,15 +57,6 @@ void openRelay()
   digitalWrite(RELAY_PIN, LOW);
 }
 
-// Task per Ethernet Loop
-void ethernetTask(void *parameter)
-{
-  for (;;)
-  {
-    eth.loop();
-    delay(10);  // Aggiungi un piccolo delay per evitare di saturare il core
-  }
-}
 
 void setup()
 {
@@ -129,13 +120,13 @@ void loop()
   }
 
   // Aggiorna i precedenti
-  lastInput9 = currentInput9;
+  lastInput9 = currentInput9;x
   lastInput10 = currentInput10;
 
 
   Serial.printf("Input 1: %d, Input 2: %d, Input 3: %d, Input 4: %d, Input 5: %d, Input 6: %d, Input 7: %d, Input 8: %d\n", input1, input2, input3, input4, input5, input6, input7, input8);
   digitalWrite(RELAY_PIN, !input1 || !input2 || !input3 || !input4 || !input5 || !input6 || !input7 || !input8 );
  
-  
+  eth.loop(); // Gestione della connessione Ethernet
   delay(10); // Aggiungi un piccolo delay per evitare di saturare il core
 }

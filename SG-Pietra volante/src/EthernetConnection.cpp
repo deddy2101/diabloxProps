@@ -17,9 +17,10 @@ EthernetConnection::EthernetConnection(IPAddress ip, IPAddress dns, IPAddress gw
   this->serverPort = serverPort;
 }
 
-void EthernetConnection::init(void (*callback)())
+void EthernetConnection::init(void (*callback)(), void (*resetCallback)())
 {
   this->callback = callback;
+  this->resetCallback = resetCallback;
   pinMode(ETH_RST, OUTPUT);
   digitalWrite(ETH_RST, LOW);
   delay(200);
@@ -71,6 +72,7 @@ void EthernetConnection::init(void (*callback)())
   Serial.printf("\033[1;33mGateway IP : %s\033[0m\n", Ethernet.gatewayIP().toString().c_str());
   Serial.printf("\033[1;33mDNS Server : %s\033[0m\n", Ethernet.dnsServerIP().toString().c_str());
 }
+
 
 bool EthernetConnection::apiCall(String action)
 {
@@ -150,6 +152,14 @@ void EthernetConnection::processIncomingMessage(String message)
     if (this->callback != NULL)
     {
       this->callback();
+    }
+    Serial.printf("Relay opened.\n");
+  }
+  else if (strcmp(command, "reset") == 0)
+  {
+    if (this->resetCallback != NULL)
+    {
+      this->resetCallback();
     }
     Serial.printf("Relay opened.\n");
   }
