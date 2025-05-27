@@ -37,7 +37,7 @@ volatile bool toggle4 = false;
 volatile bool buttonpressed = false;
 bool relayState = false;
 
-IPAddress staticIP(192, 168, 1, 5);
+IPAddress staticIP(192, 168, 1, 202);
 IPAddress dnsServer(8, 8, 8, 8);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnetMask(255, 255, 255, 0);

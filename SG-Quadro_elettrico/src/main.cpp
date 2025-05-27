@@ -28,7 +28,7 @@ unsigned long lastRandomToggle = 0;
 const unsigned long timeoutIdle = 120000;  // 2 minuti
 const unsigned long intervalRandom = 5000; // 5 secondi
 
-IPAddress staticIP(192, 168, 1, 5);
+IPAddress staticIP(192, 168, 1, 205);
 IPAddress dnsServer(8, 8, 8, 8);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnetMask(255, 255, 255, 0);

@@ -1,10 +1,10 @@
 #include "EthernetConnection.h"
 
-EthernetConnection::EthernetConnection(IPAddress ip, 
-                                       IPAddress dns, 
-                                       IPAddress gw, 
-                                       IPAddress mask, 
-                                       IPAddress serverIP, 
+EthernetConnection::EthernetConnection(IPAddress ip,
+                                       IPAddress dns,
+                                       IPAddress gw,
+                                       IPAddress mask,
+                                       IPAddress serverIP,
                                        int serverPort) : server(80)
 {
   /*
@@ -15,7 +15,7 @@ EthernetConnection::EthernetConnection(IPAddress ip,
   mac[4] = 0xFE;
   mac[5] = 0xAE;
   */
- // Inizializza il MAC address con un valore di esempio
+  // Inizializza il MAC address con un valore di esempio
   mac = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xAE}; // esempio di MAC address
 
   this->ip = ip;
@@ -31,18 +31,11 @@ EthernetConnection::EthernetConnection(IPAddress ip,
                                        IPAddress gw,
                                        IPAddress mask,
                                        IPAddress serverIP,
-                                       const std::array<byte,6>& macIn,
+                                       const std::array<byte, 6> &macIn,
                                        int serverPort)
-  : ip(ip)
-  , dns(dns)
-  , gw(gw)
-  , mask(mask)
-  , serverIP(serverIP)
-  , mac(macIn)
-  , serverPort(serverPort)
-  , server(80)
+    : ip(ip), dns(dns), gw(gw), mask(mask), serverIP(serverIP), mac(macIn), serverPort(serverPort), server(80)
 {
-    // eventuale setup addizionale...
+  // eventuale setup addizionale...
 }
 
 void EthernetConnection::init(void (*callback)(), void (*resetCallback)())
@@ -94,6 +87,7 @@ void EthernetConnection::init(void (*callback)(), void (*resetCallback)())
     Ethernet.begin(mac.data(), ip, dns, gw, mask);
     Serial.printf("\033[1;32mSTATIC OK!\033[0m\n");
   }
+  initialized = true;
   Ethernet.begin(mac.data(), ip, dns, gw, mask);
   Serial.printf("\033[1;33mLocal IP : %s\033[0m\n", Ethernet.localIP().toString().c_str());
   Serial.printf("\033[1;33mSubnet Mask : %s\033[0m\n", Ethernet.subnetMask().toString().c_str());
@@ -120,6 +114,11 @@ bool EthernetConnection::apiCall(String action)
 }
 void EthernetConnection::loop()
 {
+  if (!initialized)
+  {
+    Serial.printf("Ethernet not initialized. Call init() first.\n");
+    return;
+  }
   // check if client is connected
   if (!client.connected())
   {
@@ -159,40 +158,59 @@ bool EthernetConnection::connect()
 
 void EthernetConnection::processIncomingMessage(String message)
 {
+  // rimuovo splitter
+  int idx = message.indexOf(commandSplitter);
+  if (idx != -1)
+    message.remove(idx, commandSplitter.length());
 
-  int index = message.indexOf(commandSplitter);
-  if (index != -1)
-  {
-    message.remove(index, commandSplitter.length());
-  }
-
-  // Stampa il messaggio ricevuto senza il commandSplitter
   Serial.printf("Message received (cleaned): %s\n", message.c_str());
 
-  // Converti il messaggio in una costante per il switch
-  const char *command = message.c_str();
-
-  // Usa uno switch per gestire i comandi
-  if (strcmp(command, "on") == 0)
+  // split action e (eventuale) numero
+  String action;
+  int relayNum = 0;
+  int spacePos = message.indexOf(' ');
+  if (spacePos == -1)
   {
-    if (this->callback != NULL)
-    {
-      this->callback();
-    }
-    Serial.printf("Relay opened.\n");
-  }
-  else if (strcmp(command, "reset") == 0)
-  {
-    if (this->resetCallback != NULL)
-    {
-      this->resetCallback();
-    }
-    Serial.printf("Relay opened.\n");
+    action = message; // es. "on" o "reset"
   }
   else
   {
-    Serial.printf("Unknown command: %s\n", command);
+    action = message.substring(0, spacePos);
+    relayNum = message.substring(spacePos + 1).toInt();
   }
+
+  // caso "on" senza numero → callback principale
+  if (action == "on" && relayNum == 0)
+  {
+    if (callback)
+      callback();
+    Serial.println("Relay opened.");
+    return;
+  }
+
+  // caso "reset"
+  if (action == "reset")
+  {
+    if (resetCallback)
+      resetCallback();
+    Serial.println("Relay reset.");
+    return;
+  }
+
+  // array di puntatori alle variabili di stato
+  bool *relays[4] = {relaystate1, relaystate2, relaystate3, relaystate4};
+
+  // on/off con indice 1..4
+  if ((action == "on" || action == "off") && relayNum >= 1 && relayNum <= 4 && relays[relayNum - 1] != nullptr)
+  {
+    *relays[relayNum - 1] = (action == "on");
+    Serial.printf("Relay %d %s.\n",
+                  relayNum,
+                  action == "on" ? "opened" : "closed");
+    return;
+  }
+
+  Serial.printf("Unknown command: %s\n", message.c_str());
 }
 
 void EthernetConnection::handleIncomingMessage()
