@@ -7,16 +7,8 @@ EthernetConnection::EthernetConnection(IPAddress ip,
                                        IPAddress serverIP,
                                        int serverPort) : server(80)
 {
-  /*
-  mac[0] = 0xDE;
-  mac[1] = 0xAD;
-  mac[2] = 0xBE;
-  mac[3] = 0xEF;
-  mac[4] = 0xFE;
-  mac[5] = 0xAE;
-  */
   // Inizializza il MAC address con un valore di esempio
-  mac = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xAE}; // esempio di MAC address
+  mac = {0xAB, 0xAD, 0xBE, 0xEF, 0xFE, 0xAE}; // esempio di MAC address
 
   this->ip = ip;
   this->dns = dns;
