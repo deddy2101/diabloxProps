@@ -22,6 +22,9 @@
 #define INPUT_11 3  // 3
 #define INPUT_12 5  // 5
 
+uint16_t getState();
+void setOut(uint16_t value);
+
 CRGB leds[NUM_LEDS];
 unsigned long lastActivityTime = 0;
 unsigned long lastRandomToggle = 0;
@@ -34,7 +37,7 @@ IPAddress gateway(192, 168, 1, 1);
 IPAddress subnetMask(255, 255, 255, 0);
 IPAddress serverIP(192, 168, 1, 109);
 int serverPort = 13802;
-EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, std::array<byte,6>{0xDE,0xAD,0xBE,0xEF,0xFE,0xBB}, serverPort);
+EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, std::array<byte, 6>{0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xBB}, serverPort);
 
 volatile unsigned long lastInterruptTime = 0;
 const unsigned long debounceDelay = 200;
@@ -64,32 +67,43 @@ void openRelay()
 void setup()
 {
   Serial.begin(115200);
-  delay(1000);
-  Wire.begin();
+  pinMode(LED_BUILTIN, OUTPUT);
+  delay(2000);
+  Wire.begin(38, 37); // SDA, SCL
+  Serial.println("PCF8575 Game Controller");
+  Serial.println("=================================");
+  Serial.println("Initializing Ethernet...");
 
   Serial.println("Starting...");
   pinMode(RELAY_PIN, OUTPUT);
-  eth.init(openRelay);
-
-  // print
-  for (int i = 0; i < 2; i++)
+  // eth.init(openRelay);
+  digitalWrite(LED_BUILTIN, HIGH); // LED spento all'avvio
+  for (int i = 0; i < 16; ++i)
   {
-    PCF[i].begin();
+    EXT_IN.pinMode(i, INPUT);   // tutti gli ingressi come input con pull-up
+    EXT_OUT.pinMode(i, OUTPUT); // tutti gli output come output
+  }
+  // inizializzo pcf8575
+  if (!EXT_IN.begin() || !EXT_OUT.begin())
+  {
+    Serial.println("Error initializing PCF8575");
+    while (1)
+      delay(1000); // blocco se non riesco a inizializzare
   }
 }
 
 uint16_t lastState = 0;
 uint16_t state = 0;
-bool toggleState[16] = {0};      // stato logico memorizzato (acceso/spento)
-bool prevRawState[16] = {0};     // stato fisico precedente (per rilevare fronte di salita)
+bool toggleState[16] = {0};  // stato logico memorizzato (acceso/spento)
+bool prevRawState[16] = {0}; // stato fisico precedente (per rilevare fronte di salita)
+
 
 void readAndUpdateStates()
 {
   // 1) Leggo tutti i 16 bit dal PCF8575
   lastState = state;
-  uint16_t raw = EXT_IN.read16();
+  uint16_t raw = getState(); // funzione che legge lo stato dai pin del PCF8575
   state = raw;
-
   if (state != lastState)
   {
     lastActivityTime = millis();
@@ -104,8 +118,8 @@ void readAndUpdateStates()
       // Fronte di salita: premuto ora ma non nel ciclo precedente
       toggleState[i] = !toggleState[i]; // toggle dello stato
     }
-    prevRawState[i] = currentRaw;        // aggiorno lo stato precedente
-    buttonState[i] = toggleState[i];     // aggiorno lo stato logico
+    prevRawState[i] = currentRaw;    // aggiorno lo stato precedente
+    buttonState[i] = toggleState[i]; // aggiorno lo stato logico
   }
 
   // 3) Per ogni gruppo di 3 pulsanti, tengo solo l’ultimo premuto
@@ -146,7 +160,7 @@ void readAndUpdateStates()
   }
 
   // 5) Scrivo il nuovo stato sui LED
-  EXT_OUT.write16(toWrite);
+  // EXT_OUT.write16(toWrite);
 }
 
 void verifyWin()
@@ -194,7 +208,7 @@ void verifyWin()
 
     Serial.println("=== WINNER! ===");
     openRelay();
-    //attendi 4 secondi
+    // attendi 4 secondi
     delay(4000);
     // calcola un nuovo stato random che non sia uguale a quello attuale
     uint16_t newState;
@@ -203,7 +217,7 @@ void verifyWin()
       newState = random(0, 0xFFFF);
     } while (newState == state);
     // scrivi il nuovo stato
-    EXT_OUT.write16(newState);
+    // EXT_OUT.write16(newState);
     // qui potresti anche inviare un pacchetto via ethernet,
     // oppure attivare un buzzer, ecc.
   }
@@ -222,7 +236,7 @@ void doLightGame()
     if (now - lastRandomToggle > intervalRandom)
     {
       uint16_t rnd = random(0, 0xFFFF);
-      EXT_OUT.write16(rnd);
+      // EXT_OUT.write16(rnd);
       Serial.println("=== RANDOM STATE ===");
       lastRandomToggle = now;
     }
@@ -231,9 +245,59 @@ void doLightGame()
 
 void loop()
 {
-  readAndUpdateStates();
-  verifyWin();
-  eth.loop();
-  doLightGame();
+  //readAndUpdateStates();
+  //verifyWin();
+  // eth.loop();
+  //doLightGame();
+  uint16_t currentState = getState();
+  setOut(currentState); // aggiorno gli output in base allo stato corrente
   delay(10);
+}
+
+
+
+uint16_t getState()
+{
+  PCF8575::DigitalInput di = EXT_IN.digitalReadAll();
+  uint16_t raw = 0;
+  raw |= (di.p0 ? 0 : 1) << 0;
+  raw |= (di.p1 ? 0 : 1) << 1;
+  raw |= (di.p2 ? 0 : 1) << 2;
+  raw |= (di.p3 ? 0 : 1) << 3;
+  raw |= (di.p4 ? 0 : 1) << 4;
+  raw |= (di.p5 ? 0 : 1) << 5;
+  raw |= (di.p6 ? 0 : 1) << 6;
+  raw |= (di.p7 ? 0 : 1) << 7;
+  raw |= (di.p8 ? 0 : 1) << 8;
+  raw |= (di.p9 ? 0 : 1) << 9;
+  raw |= (di.p10 ? 0 : 1) << 10;
+  raw |= (di.p11 ? 0 : 1) << 11;
+  raw |= (di.p12 ? 0 : 1) << 12;
+  raw |= (di.p13 ? 0 : 1) << 13;
+  raw |= (di.p14 ? 0 : 1) << 14;
+  raw |= (di.p15 ? 0 : 1) << 15;
+  Serial.print("Raw value: ");
+  for (int i = 15; i >= 0; --i)
+  {
+    Serial.print((raw >> i) & 0x01);
+  }
+  Serial.println();
+  return raw;
+}
+
+void setOut(uint16_t value)
+{
+  for (int i = 0; i < 16; ++i)
+  {
+    if (value & (1 << i))
+    {
+      EXT_OUT.digitalWrite(i, HIGH); // accendo il pin
+    }
+    else
+    {
+      EXT_OUT.digitalWrite(i, LOW); // spengo il pin
+    }
+  }
+  Serial.print("Set OUT value: ");
+  Serial.println(value, BIN);
 }
