@@ -28,7 +28,7 @@ void setOut(uint16_t value);
 CRGB leds[NUM_LEDS];
 unsigned long lastActivityTime = 0;
 unsigned long lastRandomToggle = 0;
-const unsigned long timeoutIdle = 120000;  // 2 minuti
+const unsigned long timeoutIdle = 120000;    // 2 minuti
 const unsigned long intervalRandom = 5000; // 5 secondi
 
 IPAddress staticIP(192, 168, 1, 205);
@@ -40,7 +40,6 @@ int serverPort = 13802;
 EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, std::array<byte, 6>{0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xBB}, serverPort);
 
 volatile unsigned long lastInterruptTime = 0;
-const unsigned long debounceDelay = 200;
 
 PCF8575 EXT_IN(0x20);
 PCF8575 EXT_OUT(0x21);
@@ -91,76 +90,129 @@ void setup()
       delay(1000); // blocco se non riesco a inizializzare
   }
 }
-
 uint16_t lastState = 0;
 uint16_t state = 0;
-bool toggleState[16] = {0};  // stato logico memorizzato (acceso/spento)
-bool prevRawState[16] = {0}; // stato fisico precedente (per rilevare fronte di salita)
 
+bool toggleState[16] = {0};  // Stato logico attivo/disattivo
+bool prevRawState[16] = {0}; // Stato fisico precedente per rilevare il fronte
+
+unsigned long lastDebounceTime[16] = {0}; // timer per debounce di ogni pulsante
+const unsigned long debounceDelay = 20;   // in millisecondi
+bool stableRawState[16] = {0};            // stato ritenuto stabile (usato per toggle)
 
 void readAndUpdateStates()
 {
-  // 1) Leggo tutti i 16 bit dal PCF8575
+  bool prevLogicalState[16];
+  memcpy(prevLogicalState, buttonState, sizeof(buttonState));
+
+  // 1. Leggi i 16 bit fisici dall’expander
   lastState = state;
-  uint16_t raw = getState(); // funzione che legge lo stato dai pin del PCF8575
+  uint16_t raw = getState();
   state = raw;
+
   if (state != lastState)
   {
     lastActivityTime = millis();
+    Serial.print("State changed: ");
+    for (int i = 15; i >= 0; --i)
+    {
+      Serial.print((state >> i) & 0x01);
+      if (i % 3 == 0 && i != 0)
+        Serial.print(" ");
+    }
+    Serial.println();
   }
 
-  // 2) Gestione del toggle per ogni pulsante
+  // 2. Gestione del toggle per fronte di salita
   for (int i = 0; i < 16; ++i)
   {
-    bool currentRaw = !(raw >> i & 0x01); // active LOW (pulsante premuto)
-    if (currentRaw && !prevRawState[i])
+    bool reading = (raw >> i) & 0x01; // lettura fisica grezza
+
+    if (reading != prevRawState[i])
     {
-      // Fronte di salita: premuto ora ma non nel ciclo precedente
-      toggleState[i] = !toggleState[i]; // toggle dello stato
+      lastDebounceTime[i] = millis(); // è cambiato → azzera il timer
     }
-    prevRawState[i] = currentRaw;    // aggiorno lo stato precedente
-    buttonState[i] = toggleState[i]; // aggiorno lo stato logico
+
+    if ((millis() - lastDebounceTime[i]) > debounceDelay)
+    {
+      // valore stabile: se è diverso da quello salvato, aggiornalo
+      if (reading != stableRawState[i])
+      {
+        stableRawState[i] = reading;
+
+        // Fronte di salita (premuto ora, non era prima)
+        if (stableRawState[i] && !toggleState[i])
+        {
+          toggleState[i] = true;
+          Serial.print("Button ");
+          Serial.print(i);
+          Serial.println(" pressed, new state: ON");
+        }
+      }
+    }
+
+    // aggiorno prevRawState e buttonState
+    prevRawState[i] = reading;
+    buttonState[i] = toggleState[i];
   }
 
-  // 3) Per ogni gruppo di 3 pulsanti, tengo solo l’ultimo premuto
+  // 3. Gestione gruppi (1 attivo per gruppo)
   const int GROUPS = 5;
+  const int GROUP_SIZE = 3;
+
   for (int g = 0; g < GROUPS; ++g)
   {
-    int base = g * 3;
+    int base = g * GROUP_SIZE;
     int lastPressed = -1;
 
-    for (int j = 0; j < 3; ++j)
+    // Cerca il tasto logicamente attivo e appena cambiato
+    for (int j = 0; j < GROUP_SIZE; ++j)
     {
       int idx = base + j;
-      if (buttonState[idx])
-      {
+      if (!prevLogicalState[idx] && buttonState[idx])
         lastPressed = idx;
-      }
     }
 
-    for (int j = 0; j < 3; ++j)
+    // Se c'è un nuovo attivo nel gruppo, disattiva gli altri
+    if (lastPressed != -1)
     {
-      int idx = base + j;
-      if (idx != lastPressed)
+      for (int j = 0; j < GROUP_SIZE; ++j)
       {
-        buttonState[idx] = 0;
-        toggleState[idx] = 0; // anche il toggle viene disattivato per coerenza
+        int idx = base + j;
+        if (idx != lastPressed)
+        {
+          buttonState[idx] = false;
+          toggleState[idx] = false;
+        }
       }
     }
   }
 
-  // 4) Ricompongo il word da scrivere su EXT_OUT
-  uint16_t toWrite = 0;
+  // 4. Calcolo del nuovo stato binario da scrivere in output
+  uint16_t newOutput = 0;
+  uint16_t oldOutput = 0;
+
   for (int i = 0; i < 16; ++i)
   {
     if (buttonState[i])
-    {
-      toWrite |= (1 << i);
-    }
+      newOutput |= (1 << i);
+    if (prevLogicalState[i])
+      oldOutput |= (1 << i);
   }
 
-  // 5) Scrivo il nuovo stato sui LED
-  // EXT_OUT.write16(toWrite);
+  // 5. Scrivi il nuovo stato se c'è differenza
+  if (newOutput != oldOutput)
+  {
+    Serial.print("Writing new state: ");
+    for (int i = 15; i >= 0; --i)
+    {
+      Serial.print((newOutput >> i) & 0x01);
+      if (i % 3 == 0 && i != 0)
+        Serial.print(" ");
+    }
+    Serial.println();
+    setOut(newOutput); // Uscita fisica (LED, relay, ecc.)
+  }
 }
 
 void verifyWin()
@@ -209,13 +261,21 @@ void verifyWin()
     Serial.println("=== WINNER! ===");
     openRelay();
     // attendi 4 secondi
-    delay(4000);
+    delay(5000);
     // calcola un nuovo stato random che non sia uguale a quello attuale
     uint16_t newState;
     do
     {
       newState = random(0, 0xFFFF);
     } while (newState == state);
+    // aggiorna lo stato dei pulsanti
+    for (int i = 0; i < 16; ++i)
+    {
+      toggleState[i] = (newState >> i) & 0x01;
+      buttonState[i] = toggleState[i];
+    }
+    // aggiorna lo stato fisico
+    state = newState;
     // scrivi il nuovo stato
     // EXT_OUT.write16(newState);
     // qui potresti anche inviare un pacchetto via ethernet,
@@ -224,7 +284,6 @@ void verifyWin()
   else
   {
     // non-vincita: LED rosso o spento
-    Serial.println("=== NO WIN ===");
   }
 }
 
@@ -236,7 +295,7 @@ void doLightGame()
     if (now - lastRandomToggle > intervalRandom)
     {
       uint16_t rnd = random(0, 0xFFFF);
-      // EXT_OUT.write16(rnd);
+      setOut(rnd); // scrivo un nuovo stato random
       Serial.println("=== RANDOM STATE ===");
       lastRandomToggle = now;
     }
@@ -245,43 +304,84 @@ void doLightGame()
 
 void loop()
 {
-  //readAndUpdateStates();
-  //verifyWin();
-  // eth.loop();
-  //doLightGame();
-  uint16_t currentState = getState();
-  setOut(currentState); // aggiorno gli output in base allo stato corrente
-  delay(10);
+  readAndUpdateStates();
+  verifyWin();
+  //  eth.loop();
+  doLightGame();
 }
-
-
 
 uint16_t getState()
 {
   PCF8575::DigitalInput di = EXT_IN.digitalReadAll();
+  const uint8_t logicalToPhysical[16] = {
+      7, 6, 5, 4, 3, 2, 1, 0,
+      8, 9, 10, 11, 12, 13, 14, 15};
+
   uint16_t raw = 0;
-  raw |= (di.p0 ? 0 : 1) << 0;
-  raw |= (di.p1 ? 0 : 1) << 1;
-  raw |= (di.p2 ? 0 : 1) << 2;
-  raw |= (di.p3 ? 0 : 1) << 3;
-  raw |= (di.p4 ? 0 : 1) << 4;
-  raw |= (di.p5 ? 0 : 1) << 5;
-  raw |= (di.p6 ? 0 : 1) << 6;
-  raw |= (di.p7 ? 0 : 1) << 7;
-  raw |= (di.p8 ? 0 : 1) << 8;
-  raw |= (di.p9 ? 0 : 1) << 9;
-  raw |= (di.p10 ? 0 : 1) << 10;
-  raw |= (di.p11 ? 0 : 1) << 11;
-  raw |= (di.p12 ? 0 : 1) << 12;
-  raw |= (di.p13 ? 0 : 1) << 13;
-  raw |= (di.p14 ? 0 : 1) << 14;
-  raw |= (di.p15 ? 0 : 1) << 15;
-  Serial.print("Raw value: ");
-  for (int i = 15; i >= 0; --i)
+
+  for (uint8_t i = 0; i < 16; ++i)
   {
-    Serial.print((raw >> i) & 0x01);
+    bool bitValue = false;
+    switch (logicalToPhysical[i])
+    {
+    case 0:
+      bitValue = di.p0;
+      break;
+    case 1:
+      bitValue = di.p1;
+      break;
+    case 2:
+      bitValue = di.p2;
+      break;
+    case 3:
+      bitValue = di.p3;
+      break;
+    case 4:
+      bitValue = di.p4;
+      break;
+    case 5:
+      bitValue = di.p5;
+      break;
+    case 6:
+      bitValue = di.p6;
+      break;
+    case 7:
+      bitValue = di.p7;
+      break;
+    case 8:
+      bitValue = di.p8;
+      break;
+    case 9:
+      bitValue = di.p9;
+      break;
+    case 10:
+      bitValue = di.p10;
+      break;
+    case 11:
+      bitValue = di.p11;
+      break;
+    case 12:
+      bitValue = di.p12;
+      break;
+    case 13:
+      bitValue = di.p13;
+      break;
+    case 14:
+      bitValue = di.p14;
+      break;
+    case 15:
+      bitValue = di.p15;
+      break;
+    }
+    raw |= (!bitValue << i);
   }
-  Serial.println();
+
+  // Serial.print("IN :");
+  // for (int i = 15; i >= 0; --i)
+  // {
+  //  Serial.print((raw >> i) & 0x01);
+  // }
+  // Serial.println();
   return raw;
 }
 
@@ -298,6 +398,4 @@ void setOut(uint16_t value)
       EXT_OUT.digitalWrite(i, LOW); // spengo il pin
     }
   }
-  Serial.print("Set OUT value: ");
-  Serial.println(value, BIN);
 }
