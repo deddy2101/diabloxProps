@@ -56,6 +56,16 @@ const uint8_t NUM_WIN_PATTERNS = 1;
 const uint8_t winPatterns[NUM_WIN_PATTERNS][5] = {
     {0, 1, 2, 0, 1}, // es. combo A
 };
+uint16_t lastState = 0;
+uint16_t state = 0;
+
+bool toggleState[16] = {0};  // Stato logico attivo/disattivo
+bool prevRawState[16] = {0}; // Stato fisico precedente per rilevare il fronte
+
+unsigned long lastDebounceTime[16] = {0}; // timer per debounce di ogni pulsante
+const unsigned long debounceDelay = 20;   // in millisecondi
+bool stableRawState[16] = {0};            // stato ritenuto stabile (usato per toggle)
+
 
 void openRelay()
 {
@@ -75,11 +85,11 @@ void setup()
 
   Serial.println("Starting...");
   pinMode(RELAY_PIN, OUTPUT);
-  // eth.init(openRelay);
+  eth.init(openRelay);
   digitalWrite(LED_BUILTIN, HIGH); // LED spento all'avvio
   for (int i = 0; i < 16; ++i)
   {
-    EXT_IN.pinMode(i, INPUT);   // tutti gli ingressi come input con pull-up
+    EXT_IN.pinMode(i, INPUT);   // tutti gli ingressi come input
     EXT_OUT.pinMode(i, OUTPUT); // tutti gli output come output
   }
   // inizializzo pcf8575
@@ -90,15 +100,6 @@ void setup()
       delay(1000); // blocco se non riesco a inizializzare
   }
 }
-uint16_t lastState = 0;
-uint16_t state = 0;
-
-bool toggleState[16] = {0};  // Stato logico attivo/disattivo
-bool prevRawState[16] = {0}; // Stato fisico precedente per rilevare il fronte
-
-unsigned long lastDebounceTime[16] = {0}; // timer per debounce di ogni pulsante
-const unsigned long debounceDelay = 20;   // in millisecondi
-bool stableRawState[16] = {0};            // stato ritenuto stabile (usato per toggle)
 
 void readAndUpdateStates()
 {
@@ -277,7 +278,7 @@ void verifyWin()
     // aggiorna lo stato fisico
     state = newState;
     // scrivi il nuovo stato
-    // EXT_OUT.write16(newState);
+    setOut(newState);
     // qui potresti anche inviare un pacchetto via ethernet,
     // oppure attivare un buzzer, ecc.
   }
@@ -298,6 +299,14 @@ void doLightGame()
       setOut(rnd); // scrivo un nuovo stato random
       Serial.println("=== RANDOM STATE ===");
       lastRandomToggle = now;
+      //resettiamo anch e lo stato di tutto a 0
+      for (int i = 0; i < 16; ++i)
+      {
+        toggleState[i] = false;
+        buttonState[i] = false;
+        buttonStateOld[i] = false;
+        stableRawState[i] = false;
+      }
     }
   }
 }
@@ -306,7 +315,7 @@ void loop()
 {
   readAndUpdateStates();
   verifyWin();
-  //  eth.loop();
+  eth.loop();
   doLightGame();
 }
 

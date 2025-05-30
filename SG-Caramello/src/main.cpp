@@ -3,9 +3,6 @@
 #include <FastLED.h>
 #include <TimerOne.h>
 
-
-
-
 #define ETH_RESET_PIN 8
 
 #define INPUT_LASER_1 4
@@ -13,22 +10,22 @@
 #define INPUT_LASER_3 6
 #define INPUT_LASER_4 7
 #define RESET_PROP_BUTTON 16
-#define NUM_LEDS 1
+#define NUM_LEDS 11
 #define DATA_PIN 16
 #define RELAY_PIN 1
 
-#define INPUT_1 39 //39
-#define INPUT_2 40 //40
-#define INPUT_3 21 //021
-#define INPUT_4 18 //18
-#define INPUT_5 17 //16
-#define INPUT_6 2 //2
-#define INPUT_7 4 //4
-#define INPUT_8 6 //6
-#define INPUT_9 10 //10
-#define INPUT_10 13 //13
-#define INPUT_11 3 //3
-#define INPUT_12 5//5
+#define INPUT_1 39  // 39
+#define INPUT_2 40  // 40
+#define INPUT_3 21  // 021
+#define INPUT_4 18  // 18
+#define INPUT_5 17  // 16
+#define INPUT_6 2   // 2
+#define INPUT_7 4   // 4
+#define INPUT_8 6   // 6
+#define INPUT_9 10  // 10
+#define INPUT_10 13 // 13
+#define INPUT_11 3  // 3
+#define INPUT_12 5  // 5
 
 CRGB leds[NUM_LEDS];
 
@@ -45,7 +42,7 @@ IPAddress gateway(192, 168, 1, 1);
 IPAddress subnetMask(255, 255, 255, 0);
 IPAddress serverIP(192, 168, 1, 109);
 int serverPort = 13802;
-EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, std::array<byte,6>{0xDE,0xAD,0xBE,0xEF,0xFE,0xAB}, serverPort);
+EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, std::array<byte, 6>{0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xAB}, serverPort);
 void openRelay()
 {
   digitalWrite(RELAY_PIN, HIGH);
@@ -65,8 +62,6 @@ void handleResetButtonPress()
     buttonpressed = true;
   }
 }
-
-
 
 bool input1_state = false;
 bool input2_state = false;
@@ -97,43 +92,85 @@ void setup()
   pinMode(INPUT_10, INPUT_PULLUP);
   pinMode(INPUT_11, INPUT_PULLUP);
   pinMode(INPUT_12, INPUT_PULLUP);
-  
+
   Serial.println("Starting...");
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   eth.setLEDS(leds, NUM_LEDS);
   pinMode(RELAY_PIN, OUTPUT);
   eth.init(openRelay);
-  //print
+  // print
+}
+const int inputs[] = {INPUT_1, INPUT_2, INPUT_3, INPUT_4, INPUT_5, INPUT_6, INPUT_7, INPUT_8, INPUT_9, INPUT_10, INPUT_11};
+bool *input_states[] = {&input1_state, &input2_state, &input3_state, &input4_state, &input5_state, &input6_state, &input7_state, &input8_state, &input9_state, &input10_state, &input11_state};
+
+void updateLed()
+{
+  //turn on nled as the number of true input_states
+  int nled = 0;
+  for (int i = 0; i < 11; ++i)
+  {
+    if (*input_states[i])
+    {
+      nled++;
+    }
+  }
+  for (int i = 0; i < NUM_LEDS; ++i)
+  {
+    if (i < nled)
+    {
+      leds[i] = CRGB::Green;
+    }
+    else
+    {
+      leds[i] = CRGB::Black;
+    }
+  }
+  FastLED.show();
 
 }
 
 
 void loop()
 {
-  const int inputs[] = {INPUT_1, INPUT_2, INPUT_3, INPUT_4, INPUT_5, INPUT_6, INPUT_7, INPUT_8, INPUT_9, INPUT_10, INPUT_11, INPUT_12};
-  bool* input_states[] = {&input1_state, &input2_state, &input3_state, &input4_state, &input5_state, &input6_state, &input7_state, &input8_state, &input9_state, &input10_state, &input11_state, &input12_state};
 
-  for (int i = 0; i < 12; ++i) {
+  for (int i = 0; i < 11; ++i)
+  {
     bool input = digitalRead(inputs[i]);
-    if (!input != *input_states[i]) {
+    // if input is true skip
+    if (input == HIGH)
+    {
+      continue; // Skip if input is HIGH
+    }
+    if (!input != *input_states[i])
+    {
       *input_states[i] = !input;
-      if (input == LOW) {
+      if (input == LOW)
+      {
         Serial.print("Input ");
         Serial.print(i + 1);
         Serial.println(" ON");
       }
     }
   }
-  // if all are true 
-  if (input1_state && input2_state && input3_state && input4_state && input5_state && input6_state && input7_state && input8_state && input9_state && input10_state && input11_state && input12_state) {
+  // if all are true
+  if (input1_state && input2_state && input3_state && input4_state && input5_state && input6_state && input7_state && input8_state && input9_state && input10_state && input11_state)
+  {
     Serial.println("All inputs are ON");
-    eth.apiCall("ALL_ON");
+   // eth.apiCall("ALL_ON");
     openRelay();
-  } else {
+    delay(5000);
+    //reset all inputs
+    for (int i = 0; i < 11; ++i)
+    {
+      *input_states[i] = false;
+    }
+    updateLed();
+    Serial.println("All inputs reset to OFF");
     
   }
-  
+  else
+  {
+  }
+  updateLed();
   eth.loop();
-  
 }
-

@@ -47,21 +47,6 @@ IPAddress serverIP(192, 168, 1, 109);
 int serverPort = 13802;
 EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, std::array<byte,6>{0xDE,0xAD,0xBE,0xEF,0xFE,0xAD}, serverPort);
 
-volatile unsigned long lastInterruptTime = 0;
-const unsigned long debounceDelay = 200;
-
-
-
-// Task per Ethernet Loop
-void ethernetTask(void *parameter)
-{
-  for (;;)
-  {
-    eth.loop();
-    delay(10);  // Aggiungi un piccolo delay per evitare di saturare il core
-  }
-}
-
 void openRelay()
 {
   digitalWrite(RELAY_PIN, HIGH);
@@ -91,20 +76,18 @@ void setup()
   eth.setLEDS(leds, NUM_LEDS);
   pinMode(RELAY_PIN, OUTPUT);
   eth.init(openRelay);
-  //print
 
 }
 
 void loop()
 {
   bool input1 = digitalRead(INPUT_1);
-  bool input2 = digitalRead(INPUT_2);
-  bool input3 = digitalRead(INPUT_3);
-  bool input4 = digitalRead(INPUT_4);
   
-  Serial.printf("Input 1: %d, Input 2: %d, Input 3: %d, Input 4: %d, \n", input1, input2, input3, input4);
-  digitalWrite(RELAY_PIN, !input1 || !input2 || !input3 || !input4);
- 
-  Serial.println("Looping..."); 
-  delay(10); // Aggiungi un piccolo delay per evitare di saturare il core
+  if (input1 == LOW) {
+    Serial.println("Input 1 is LOW, opening relay...");
+    openRelay();
+    delay(5000); // Mantieni il relay aperto per 5 secondi
+  } else {
+  }
+  eth.loop(); // Assicurati di chiamare il loop dell'istanza EthernetConnection
 }

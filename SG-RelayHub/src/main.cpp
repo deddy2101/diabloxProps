@@ -56,7 +56,6 @@ void resetRelays()
   
   Serial.println("Relays reset.");
 }
-
 void setup()
 {
   Serial.begin(115200);
@@ -71,20 +70,29 @@ void setup()
   eth.setLEDS(leds, NUM_LEDS);
   pinMode(RELAY_PIN, OUTPUT);
   eth.init(openRelay, resetRelays, &relayState1, &relayState2, &relayState3, &relayState4);
-  //print
   Serial.println("\033[1;33mCompleted\033[0m");
 }
+
+long manichinTurnOnTime = 0;
+bool lastManichinoState = false;
 
 void loop()
 {
   //aggiorna i valori dei realy in base agli stati
-  digitalWrite(RELAY_PIN_1, relayState1);
-  digitalWrite(RELAY_PIN_2, relayState2);
-  digitalWrite(RELAY_PIN_3, relayState3);
+  digitalWrite(RELAY_PIN_1, relayState1); //porta
+  digitalWrite(RELAY_PIN_2, relayState2); //manichino
+  digitalWrite(RELAY_PIN_3, relayState3); //qualcosaltro
   digitalWrite(RELAY_PIN_4, relayState4);
-
+  lastManichinoState = relayState2; //aggiorna lo stato del manichino
+  if (relayState2 && !lastManichinoState) {
+    manichinTurnOnTime = millis(); // Salva il tempo di accensione del manichino
+  }
+  // Controlla se il manichino è acceso da più di 2 secondi
+  if (relayState2 && (millis() - manichinTurnOnTime > 2000)) {
+    Serial.println("\033[1;31mManichino acceso da più di 2 secondi, spegnimento...\033[0m");
+    relayState2 = false; // Spegne il manichino
+    Serial.println("\033[1;31mManichino spento.\033[0m");
+  }
   eth.loop(); // Chiama il loop dell'istanza di EthernetConnection
  
-  Serial.println("Looping..."); 
-  delay(10); // Aggiungi un piccolo delay per evitare di saturare il core
 }

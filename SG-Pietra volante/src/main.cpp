@@ -148,18 +148,12 @@ void loop()
   bool input5 = digitalRead(INPUT_5); //5
   bool input6 = digitalRead(INPUT_6); //6
   bool input7 = digitalRead(INPUT_7); //7
-  bool input8 = digitalRead(INPUT_8); //8
-  
+  bool input8 = digitalRead(INPUT_8); //8 
   //se sono tutti LOW
   if (!input1 && !input2 && !input3 && !input4 && !input5 && !input6 && !input7 && !input8) {
     Serial.println("All inputs are LOW, resetting game...");
     openRelay();
   }
-
-
   Serial.printf("Input 1: %d, Input 2: %d, Input 3: %d, Input 4: %d, Input 5: %d, Input 6: %d, Input 7: %d, Input 8: %d\n", input1, input2, input3, input4, input5, input6, input7, input8);
-  digitalWrite(RELAY_PIN, !input1 || !input2 || !input3 || !input4 || !input5 || !input6 || !input7 || !input8 );
- 
   eth.loop(); // Gestione della connessione Ethernet
-  delay(10); // Aggiungi un piccolo delay per evitare di saturare il core
 }
