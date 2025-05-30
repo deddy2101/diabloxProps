@@ -17,6 +17,7 @@
 #define RELAY_PIN_2 40
 #define RELAY_PIN_3 1
 #define RELAY_PIN_4 2
+#define INPUT_1 21
 
 CRGB leds[NUM_LEDS];
 
@@ -47,8 +48,7 @@ void resetRelays()
   digitalWrite(RELAY_PIN_1, LOW);
   digitalWrite(RELAY_PIN_2, LOW);
   digitalWrite(RELAY_PIN_3, LOW);
-  digitalWrite(RELAY_PIN_4, LOW);
-  
+  digitalWrite(RELAY_PIN_4, LOW);  
   relayState1 = false;
   relayState2 = false;
   relayState3 = false;
@@ -64,6 +64,7 @@ void setup()
   pinMode(RELAY_PIN_2, OUTPUT);
   pinMode(RELAY_PIN_3, OUTPUT);
   pinMode(RELAY_PIN_4, OUTPUT);
+  pinMode(INPUT_LASER_1, INPUT_PULLUP);
   
   Serial.println("\033[1;33mStarting...\033[0m");
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
@@ -78,6 +79,9 @@ bool lastManichinoState = false;
 
 void loop()
 {
+  if (digitalRead(INPUT_1) == LOW) {
+    relayState1 = true; // attiva il relay 1
+  }
   //aggiorna i valori dei realy in base agli stati
   digitalWrite(RELAY_PIN_1, relayState1); //porta
   digitalWrite(RELAY_PIN_2, relayState2); //manichino
