@@ -91,10 +91,10 @@ void setup()
   pinMode(INPUT_9, INPUT_PULLUP);
   pinMode(INPUT_10, INPUT_PULLUP);
   pinMode(INPUT_11, INPUT_PULLUP);
-  pinMode(INPUT_12, INPUT_PULLUP);
+  pinMode(INPUT_12, OUTPUT);
 
   Serial.println("Starting...");
-  FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812B, INPUT_12, GRB>(leds, NUM_LEDS);
   eth.setLEDS(leds, NUM_LEDS);
   pinMode(RELAY_PIN, OUTPUT);
   eth.init(openRelay);
