@@ -10,7 +10,7 @@
 #define INPUT_LASER_3 6
 #define INPUT_LASER_4 7
 #define RESET_PROP_BUTTON 16
-#define NUM_LEDS 11
+#define NUM_LEDS 22
 #define DATA_PIN 16
 #define RELAY_PIN 1
 
@@ -40,14 +40,16 @@ IPAddress staticIP(192, 168, 1, 201);
 IPAddress dnsServer(8, 8, 8, 8);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnetMask(255, 255, 255, 0);
-IPAddress serverIP(192, 168, 1, 109);
-int serverPort = 13802;
+IPAddress serverIP(192, 168, 1, 9);
+int serverPort = 13801;
 EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, std::array<byte, 6>{0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xAB}, serverPort);
 void openRelay()
 {
   digitalWrite(RELAY_PIN, HIGH);
   delay(200);
   digitalWrite(RELAY_PIN, LOW);
+  delay(1000);
+  ESP.restart();
 }
 volatile unsigned long lastInterruptTime = 0;
 const unsigned long debounceDelay = 200;
@@ -98,6 +100,18 @@ void setup()
   eth.setLEDS(leds, NUM_LEDS);
   pinMode(RELAY_PIN, OUTPUT);
   eth.init(openRelay);
+  //test all the leds
+  for (int i = 0; i < NUM_LEDS; ++i)
+  {
+    leds[i] = CRGB::Red;
+  }
+  FastLED.show();
+  delay(1000);
+  for (int i = 0; i < NUM_LEDS; ++i)
+  {
+    leds[i] = CRGB::Black;
+  }
+  FastLED.show();
   // print
 }
 const int inputs[] = {INPUT_1, INPUT_2, INPUT_3, INPUT_4, INPUT_5, INPUT_6, INPUT_7, INPUT_8, INPUT_9, INPUT_10, INPUT_11};
@@ -105,29 +119,34 @@ bool *input_states[] = {&input1_state, &input2_state, &input3_state, &input4_sta
 
 void updateLed()
 {
-  //turn on nled as the number of true input_states
+  // 1) Contiamo quanti input_states sono true
   int nled = 0;
   for (int i = 0; i < 11; ++i)
   {
     if (*input_states[i])
-    {
       nled++;
-    }
   }
+
+  // 2) Ogni input true vale 2 LED, quindi:
+  int nToLight = nled * 2;
+
+  // 3) Non superare mai il numero totale di LED disponibile
+  if (nToLight > NUM_LEDS) {
+    nToLight = NUM_LEDS;
+  }
+
+  // 4) Accendiamo i primi nToLight LED, spegniamo gli altri
   for (int i = 0; i < NUM_LEDS; ++i)
   {
-    if (i < nled)
-    {
-      leds[i] = CRGB::Green;
-    }
+    if (i < nToLight)
+      leds[i] = CRGB::Blue;
     else
-    {
       leds[i] = CRGB::Black;
-    }
   }
-  FastLED.show();
 
+  FastLED.show();
 }
+
 
 
 void loop()

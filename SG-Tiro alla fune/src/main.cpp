@@ -13,8 +13,8 @@
 #define INPUT_LASER_3 6
 #define INPUT_LASER_4 7
 #define RESET_PROP_BUTTON 16
-#define NUM_LEDS 1
-#define DATA_PIN 16
+#define NUM_LEDS 15
+#define DATA_PIN INPUT_4
 #define RELAY_PIN 1
 
 #define INPUT_1 39 //39
@@ -58,36 +58,95 @@ void setup()
 {
   Serial.begin(115200);
   delay(1000);
-  pinMode(INPUT_1, INPUT_PULLUP);
-  pinMode(INPUT_2, INPUT_PULLUP);
-  pinMode(INPUT_3, INPUT_PULLUP);
-  pinMode(INPUT_4, INPUT_PULLUP);
-  pinMode(INPUT_5, INPUT_PULLUP);
-  pinMode(INPUT_6, INPUT_PULLUP);
-  pinMode(INPUT_7, INPUT_PULLUP);
-  pinMode(INPUT_8, INPUT_PULLUP);
-  pinMode(INPUT_9, INPUT_PULLUP);
-  pinMode(INPUT_10, INPUT_PULLUP);
-  pinMode(INPUT_11, INPUT_PULLUP);
-  pinMode(INPUT_12, INPUT_PULLUP);
-  
+  pinMode(INPUT_1, INPUT); 
+  pinMode(INPUT_2, INPUT);
+  pinMode(INPUT_3, INPUT);
+  pinMode(INPUT_4, OUTPUT);
   Serial.println("Starting...");
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   eth.setLEDS(leds, NUM_LEDS);
   pinMode(RELAY_PIN, OUTPUT);
-  eth.init(openRelay);
+  //eth.init(openRelay);
 
 }
+bool state1, state2, state3 = false;
+int count1 = 0, count2 = 0, count3 = 0;
+int rightCombination[] = {2,4,3};
 
+void updateLEDs()
+{
+  //ho 3 gruppi da 5 led ogni gruppo ha un colore diverso gli indirizzi sono 0-4, 5-9, 10-14, accendi i led in base ai counter di ogni gruppo
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i] = CRGB::Black; // Reset all LEDs to black
+  }
+  if (count1 > 0) {
+    for (int i = 0; i < count1 && i < 5; i++) {
+      leds[i] = CRGB::Red; // First group of LEDs (0-4) in red
+    }
+  }
+  if (count2 > 0) {
+    for (int i = 5; i < count2 && i < 10; i++) {
+      leds[i] = CRGB::Green; // Second group of LEDs (5-9) in green
+    }
+  }
+  if (count3 > 0) {
+    for (int i = 10; i < count3 && i < 15; i++) {
+      leds[i] = CRGB::Blue; // Third group of LEDs (10-14) in blue
+    }
+  }
+  FastLED.show(); // Update the LEDs with the new colors
+}
+
+void flashErrorLeds()
+{
+  //flash 3 times all the leds in red
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < NUM_LEDS; j++) {
+      leds[j] = CRGB::Red; // Set all LEDs to red
+    }
+    FastLED.show();
+    delay(300);
+    for (int j = 0; j < NUM_LEDS; j++) {
+      leds[j] = CRGB::Black; // Reset all LEDs to black
+    }
+    FastLED.show();
+    delay(300);
+  }
+}
+
+#define DEBOUNCE_DELAY 200 // Milliseconds for debounce delay
 void loop()
 {
-  bool input1 = digitalRead(INPUT_1);
-  
-  if (input1 == LOW) {
-    Serial.println("Input 1 is LOW, opening relay...");
-    openRelay();
-    delay(5000); // Mantieni il relay aperto per 5 secondi
-  } else {
+  bool input1 = !digitalRead(INPUT_1);
+  bool input2 = !digitalRead(INPUT_2);
+  bool input3 = !digitalRead(INPUT_3);
+  if (input1) {
+    count1++;
+    delay(DEBOUNCE_DELAY); // Debounce delay
   }
-  eth.loop(); // Assicurati di chiamare il loop dell'istanza EthernetConnection
+  if (input2) {
+    count2++;
+    delay(DEBOUNCE_DELAY); // Debounce delay
+  }
+  if (input3) {
+    count3++;
+    delay(DEBOUNCE_DELAY); // Debounce delay
+  }
+  if (count1 == rightCombination[0] && count2 == rightCombination[1] && count3 == rightCombination[2]) {
+    Serial.println("Right combination entered!");
+    openRelay();
+    count1 = 0;
+    count2 = 0;
+    count3 = 0;
+  } else if (count1 > 5 || count2 > 5 || count3 > 5) {
+    Serial.println("Wrong combination, resetting counts.");
+    flashErrorLeds(); // Flash error LEDs
+    count1 = 0;
+    count2 = 0;
+    count3 = 0;
+  }
+  updateLEDs(); // Update the LEDs based on the current counts
+  
+  delay(10); // Aggiungi un ritardo per evitare spam di messaggi seriali
+  //eth.loop(); // Assicurati di chiamare il loop dell'istanza EthernetConnection
 }
