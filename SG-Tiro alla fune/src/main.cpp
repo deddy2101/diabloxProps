@@ -43,7 +43,7 @@ IPAddress staticIP(192, 168, 1, 207);
 IPAddress dnsServer(8, 8, 8, 8);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnetMask(255, 255, 255, 0);
-IPAddress serverIP(192, 168, 1, 109);
+IPAddress serverIP(192, 168, 1, 9);
 int serverPort = 13802;
 EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, std::array<byte,6>{0xDE,0xAD,0xBE,0xEF,0xFE,0xAD}, serverPort);
 
@@ -66,7 +66,7 @@ void setup()
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   eth.setLEDS(leds, NUM_LEDS);
   pinMode(RELAY_PIN, OUTPUT);
-  //eth.init(openRelay);
+  eth.init(openRelay);
 
 }
 bool state1, state2, state3 = false;
@@ -94,7 +94,7 @@ void updateLEDs()
       leds[i] = CRGB::Blue; // Third group of LEDs (10-14) in blue
     }
   }
-  FastLED.show(); // Update the LEDs with the new colors
+  FastLED.show(); // Update the LEDs with the new colors 
 }
 
 void flashErrorLeds()
@@ -148,5 +148,5 @@ void loop()
   updateLEDs(); // Update the LEDs based on the current counts
   
   //delay(10); // Aggiungi un ritardo per evitare spam di messaggi seriali
-  //eth.loop(); // Assicurati di chiamare il loop dell'istanza EthernetConnection
+  eth.loop(); // Assicurati di chiamare il loop dell'istanza EthernetConnection
 }

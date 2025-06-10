@@ -104,7 +104,7 @@ void loop()
     Serial.println("\033[1;31mManichino spento.\033[0m");
   }
   // Controlla se il box è acceso da più di 2 secondi
-  if (relayState3 && (millis() - boxTurnOnTime > 2000)) {
+  if (relayState3 && (millis() - boxTurnOnTime > 200)) {
     Serial.println("\033[1;31mBox acceso da più di 2 secondi, spegnimento...\033[0m");
     relayState3 = false; // Spegne il box
     Serial.println("\033[1;31mBox spento.\033[0m");
