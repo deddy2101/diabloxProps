@@ -147,6 +147,6 @@ void loop()
   }
   updateLEDs(); // Update the LEDs based on the current counts
   
-  delay(10); // Aggiungi un ritardo per evitare spam di messaggi seriali
+  //delay(10); // Aggiungi un ritardo per evitare spam di messaggi seriali
   //eth.loop(); // Assicurati di chiamare il loop dell'istanza EthernetConnection
 }
