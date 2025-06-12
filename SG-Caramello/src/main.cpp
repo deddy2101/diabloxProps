@@ -148,7 +148,14 @@ void updateLed()
 }
 
 
-
+void blackAllLeds()
+{
+  for (int i = 0; i < NUM_LEDS; ++i)
+  {
+    leds[i] = CRGB::Black;
+  }
+  FastLED.show();
+}
 void loop()
 {
 
@@ -178,6 +185,7 @@ void loop()
    // eth.apiCall("ALL_ON");
     openRelay();
     delay(5000);
+    blackAllLeds();
     //reset all inputs
     for (int i = 0; i < 11; ++i)
     {

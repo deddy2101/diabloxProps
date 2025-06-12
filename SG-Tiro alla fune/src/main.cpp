@@ -53,6 +53,16 @@ void openRelay()
   delay(200);
   digitalWrite(RELAY_PIN, LOW);
 }
+void testLEDs()
+{
+  // Test all LEDs by lighting them up in sequence
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i] = CRGB::White; // Set LED to white
+    FastLED.show();
+    delay(100);
+    leds[i] = CRGB::Black; // Reset LED to black
+  }
+}
 
 void setup()
 {
@@ -62,40 +72,45 @@ void setup()
   pinMode(INPUT_2, INPUT);
   pinMode(INPUT_3, INPUT);
   pinMode(INPUT_4, OUTPUT);
+  
   Serial.println("Starting...");
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
   eth.setLEDS(leds, NUM_LEDS);
   pinMode(RELAY_PIN, OUTPUT);
   eth.init(openRelay);
+  testLEDs(); // Test all LEDs at startup
 
 }
 bool state1, state2, state3 = false;
-int count1 = 0, count2 = 0, count3 = 0;
-int rightCombination[] = {2,4,3};
+int count1 = 0, count2 = 0, count3 = 0; 
+int rightCombination[] = {4,1,2}; // RGY 2 1 4 / oridne reale YGR 412
 
 void updateLEDs()
 {
-  //ho 3 gruppi da 5 led ogni gruppo ha un colore diverso gli indirizzi sono 0-4, 5-9, 10-14, accendi i led in base ai counter di ogni gruppo
+  // Spegni tutti i LED
   for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = CRGB::Black; // Reset all LEDs to black
+    leds[i] = CRGB::Black;
   }
-  if (count1 > 0) {
-    for (int i = 0; i < count1 && i < 5; i++) {
-      leds[i] = CRGB::Red; // First group of LEDs (0-4) in red
-    }
+
+  // Gruppo 1: LED 0-4
+  for (int i = 0; i < count1 && i < 5; i++) {
+    leds[i] = CRGB::Yellow;
   }
-  if (count2 > 0) {
-    for (int i = 5; i < count2 && i < 10; i++) {
-      leds[i] = CRGB::Green; // Second group of LEDs (5-9) in green
-    }
+
+  // Gruppo 2: LED 5-9
+  for (int i = 0; i < count2 && i < 5; i++) {
+    leds[5 + i] = CRGB::Green;
   }
-  if (count3 > 0) {
-    for (int i = 10; i < count3 && i < 15; i++) {
-      leds[i] = CRGB::Blue; // Third group of LEDs (10-14) in blue
-    }
+
+  // Gruppo 3: LED 10-14
+  for (int i = 0; i < count3 && i < 5; i++) {
+    leds[10 + i] = CRGB::Red;
   }
-  FastLED.show(); // Update the LEDs with the new colors 
+
+  FastLED.show();
 }
+
+// RGY
 
 void flashErrorLeds()
 {
@@ -114,22 +129,29 @@ void flashErrorLeds()
   }
 }
 
-#define DEBOUNCE_DELAY 200 // Milliseconds for debounce delay
+#define DEBOUNCE_DELAY 400 // Milliseconds for debounce delay
 void loop()
 {
   bool input1 = !digitalRead(INPUT_1);
   bool input2 = !digitalRead(INPUT_2);
   bool input3 = !digitalRead(INPUT_3);
+  //se gualcosa va a 1 stampalo
   if (input1) {
     count1++;
+    Serial.print("Input 1 pressed, count1: ");
+    Serial.println(count1);
     delay(DEBOUNCE_DELAY); // Debounce delay
   }
   if (input2) {
     count2++;
+    Serial.print("Input 2 pressed, count2: ");
+    Serial.println(count2);
     delay(DEBOUNCE_DELAY); // Debounce delay
   }
   if (input3) {
     count3++;
+    Serial.print("Input 3 pressed, count3: ");
+    Serial.println(count3);
     delay(DEBOUNCE_DELAY); // Debounce delay
   }
   if (count1 == rightCombination[0] && count2 == rightCombination[1] && count3 == rightCombination[2]) {
@@ -150,3 +172,5 @@ void loop()
   //delay(10); // Aggiungi un ritardo per evitare spam di messaggi seriali
   eth.loop(); // Assicurati di chiamare il loop dell'istanza EthernetConnection
 }
+
+//rosso verde giallo

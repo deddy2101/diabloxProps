@@ -35,8 +35,8 @@ IPAddress staticIP(192, 168, 1, 205);
 IPAddress dnsServer(8, 8, 8, 8);
 IPAddress gateway(192, 168, 1, 1);
 IPAddress subnetMask(255, 255, 255, 0);
-IPAddress serverIP(192, 168, 1, 109);
-int serverPort = 13802;
+IPAddress serverIP(192, 168, 1, 9);
+int serverPort = 13806;
 EthernetConnection eth(staticIP, dnsServer, gateway, subnetMask, serverIP, std::array<byte, 6>{0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xBB}, serverPort);
 
 volatile unsigned long lastInterruptTime = 0;
@@ -54,7 +54,7 @@ const uint8_t NUM_WIN_PATTERNS = 1;
 // Ciascuna riga è una combinazione: {gruppo0, gruppo1, gruppo2, gruppo3, gruppo4}
 // dove il valore è 0,1 o 2 (il pulsante all’interno del gruppo)
 const uint8_t winPatterns[NUM_WIN_PATTERNS][5] = {
-    {0, 1, 2, 0, 1}, // es. combo A
+    {1, 0, 2, 0, 2}, // es. combo A
 };
 uint16_t lastState = 0;
 uint16_t state = 0;
