@@ -11,8 +11,8 @@
 #define INPUT_LASER_3 6
 #define INPUT_LASER_4 7
 #define RESET_PROP_BUTTON 16
-#define NUM_LEDS 12
-#define DATA_PIN 16
+#define NUM_LEDS 5
+#define DATA_PIN INPUT_6
 #define RELAY_PIN 1
 
 #define INPUT_1 39 //39
@@ -63,7 +63,8 @@ void setup()
   pinMode(INPUT_2, INPUT_PULLUP);
   pinMode(INPUT_3, INPUT_PULLUP);
   pinMode(INPUT_4, INPUT_PULLUP);
-  pinMode(INPUT_5, OUTPUT);
+  pinMode(INPUT_5, INPUT_PULLUP);
+  pinMode(INPUT_6, OUTPUT);
   //pinMode(INPUT_6, INPUT_PULLUP);
   
   Serial.println("Starting...");
@@ -78,32 +79,37 @@ bool input1_state = false;
 bool input2_state = false;
 bool input3_state = false;
 bool input4_state = false;
-const int inputs[] = {INPUT_1, INPUT_2, INPUT_3, INPUT_4};
-bool *input_states[] = {&input1_state, &input2_state, &input3_state, &input4_state};
- 
+bool input5_state = false;
+bool last_input1_state = false;
+bool last_input2_state = false; 
+bool last_input3_state = false;
+bool last_input4_state = false;
+bool last_input5_state = false;
+
+const int inputs[] = {INPUT_1, INPUT_2, INPUT_3, INPUT_4, INPUT_5};
+bool *input_states[] = {&input1_state, &input2_state, &input3_state, &input4_state, &input5_state};
+
 void updateLed(){
-  //there are 3 led for each input 0, 1, 2 for inputState1, 3,4,5 for inputState2, 6,7,8 for inputState3, 9,10,11 for inputState4 turn on all 3 for each input that is HIGH
-  for (int i = 0; i < 4; ++i)
-  {
-    if (*input_states[i]) // If the input state is HIGH
-    {
-      leds[i * 3] = CRGB::Green; // Turn on first LED
-      leds[i * 3 + 1] = CRGB::Green; // Turn on second LED
-      leds[i * 3 + 2] = CRGB::Green; // Turn on third LED
-    }
-    else // If the input state is LOW
-    {
-      leds[i * 3] = CRGB::Black; // Turn off first LED
-      leds[i * 3 + 1] = CRGB::Black; // Turn off second LED
-      leds[i * 3 + 2] = CRGB::Black; // Turn off third LED
+  // Assumiamo NUM_LEDS == 5 e input_states[0] punta a input_1, ..., input_states[4] a input_5
+  for (int i = 0; i < NUM_LEDS; ++i) {
+    // Mappo led[i] all'input opposto: led[0] → input_states[4], led[1] → input_states[3], ...
+    int sensorIndex = NUM_LEDS - 1 - i;
+    bool state = *input_states[sensorIndex];
+
+    if (state) {
+      // se HIGH (true) → verde
+      leds[i] = CRGB::Green;
+    } else {
+      // se LOW (false) → rosso
+      leds[i] = CRGB::Red;
     }
   }
-  FastLED.show(); // Update the LEDs
+  FastLED.show();
 }
 
 void loop()
 {
-  for (int i = 0; i < 4; ++i)
+  for (int i = 0; i < 5; ++i)
   {
     bool input = digitalRead(inputs[i]);
     // if input is true skip
@@ -123,6 +129,23 @@ void loop()
     }
   }
 
-  Serial.printf("Input 1: %d, Input 2: %d, Input 3: %d, Input 4: %d\n", input1_state, input2_state, input3_state, input4_state);
+  updateLed();
+  //if all are true 
+  if (input1_state && input2_state && input3_state && input4_state && input5_state)
+  {
+    openRelay();
+    delay(1000);
+    ESP.restart();
+  }
+
+  if (last_input1_state != input1_state || last_input2_state != input2_state || last_input3_state != input3_state || last_input4_state != input4_state || last_input5_state != input5_state)
+  {
+    Serial.printf("Input states changed: %d %d %d %d %d\n", input1_state, input2_state, input3_state, input4_state, input5_state);
+  }
+  last_input1_state = input1_state;
+  last_input2_state = input2_state;
+  last_input3_state = input3_state;
+  last_input4_state = input4_state;
+  last_input5_state = input5_state;
   eth.loop();
 }

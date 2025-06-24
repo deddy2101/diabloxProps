@@ -263,28 +263,28 @@ void verifyWin()
     openRelay();
     // attendi 4 secondi
     delay(5000);
-    // calcola un nuovo stato random che non sia uguale a quello attuale
-    uint16_t newState;
-    do
-    {
-      newState = random(0, 0xFFFF);
-    } while (newState == state);
-    // aggiorna lo stato dei pulsanti
+    //imposta tutto off
+    uint16_t newState = 0; // tutto spento
     for (int i = 0; i < 16; ++i)
     {
-      toggleState[i] = (newState >> i) & 0x01;
-      buttonState[i] = toggleState[i];
+      toggleState[i] = false; // resetto lo stato dei toggle
+      buttonState[i] = false; // resetto lo stato dei pulsanti
+      stableRawState[i] = false; // resetto lo stato stabile
     }
-    // aggiorna lo stato fisico
-    state = newState;
+    // resetto il timer di attività
+    lastActivityTime = millis();
+    // resetto il timer di random toggle
+    lastRandomToggle = millis();
+    // resetto lo stato fisico
     // scrivi il nuovo stato
     setOut(newState);
     // qui potresti anche inviare un pacchetto via ethernet,
     // oppure attivare un buzzer, ecc.
+    ESP.restart();
   }
   else
   {
-    // non-vincita: LED rosso o spento
+    
   }
 }
 

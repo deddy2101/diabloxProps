@@ -52,6 +52,7 @@ void openRelay()
   digitalWrite(RELAY_PIN, HIGH);
   delay(200);
   digitalWrite(RELAY_PIN, LOW);
+  ESP.restart(); // Restart the ESP after opening the relay
 }
 void testLEDs()
 {
